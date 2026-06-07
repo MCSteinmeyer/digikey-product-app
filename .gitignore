@@ -1,0 +1,5 @@
+Temp/
+digikey-product-app/node_modules/
+digikey-product-app/.env
+digikey-product-app/.google-drive-session.json
+digikey-product-app/debug.log

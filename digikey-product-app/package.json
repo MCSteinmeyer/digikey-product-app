@@ -1,0 +1,18 @@
+{
+  "name": "digikey-product-app",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Tool-only ChatGPT app scaffold for DigiKey Product Information V4.",
+  "scripts": {
+    "check": "node --check src/server.mjs",
+    "start:http": "node src/server.mjs http",
+    "start:stdio": "node src/server.mjs stdio"
+  },
+  "dependencies": {
+    "@cfworker/json-schema": "^4.1.1",
+    "@modelcontextprotocol/node": "^2.0.0-alpha.2",
+    "@modelcontextprotocol/server": "^2.0.0-alpha.2",
+    "zod": "^4.4.3"
+  }
+}

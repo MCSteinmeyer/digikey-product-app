@@ -1,0 +1,1008 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DigiKey BOM Quote</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #0f172a;
+      --panel: rgba(255, 255, 255, 0.94);
+      --panel-strong: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --accent: #0f766e;
+      --accent-2: #2563eb;
+      --border: rgba(15, 23, 42, 0.12);
+      --shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+      --radius: 20px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(37, 99, 235, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(15, 118, 110, 0.18), transparent 24%),
+        linear-gradient(180deg, #0f172a 0%, #111827 28%, #f8fafc 28%, #f8fafc 100%);
+      color: var(--text);
+      padding: 24px;
+    }
+
+    .shell {
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      color: #e2e8f0;
+      padding: 12px 4px 24px;
+    }
+
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 12px;
+      color: #7dd3fc;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 54px);
+      line-height: 0.98;
+      max-width: 12ch;
+    }
+
+    .hero p {
+      margin: 12px 0 0;
+      max-width: 68ch;
+      color: #cbd5e1;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(14px);
+    }
+
+    dialog {
+      width: min(100%, 1080px);
+      border: 0;
+      border-radius: var(--radius);
+      padding: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    dialog::backdrop {
+      background: rgba(2, 6, 23, 0.68);
+      backdrop-filter: blur(6px);
+    }
+
+    .panel {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      min-height: 700px;
+    }
+
+    .form-side,
+    .result-side {
+      padding: 24px;
+    }
+
+    .form-side {
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      border-right: 1px solid var(--border);
+    }
+
+    .result-side {
+      background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+    }
+
+    .section-title {
+      margin: 0 0 6px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .section-copy {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin: 16px 0 8px;
+      color: #111827;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      background: #fff;
+      color: var(--text);
+      padding: 12px 14px;
+      font: inherit;
+      outline: none;
+      transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+    }
+
+    textarea {
+      min-height: 280px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      line-height: 1.45;
+      white-space: pre;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: rgba(37, 99, 235, 0.7);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+
+    .filename-input {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 12px;
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 16px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 150ms ease, opacity 150ms ease, background-color 150ms ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: 0.55; cursor: wait; transform: none; }
+
+    .primary {
+      color: white;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 14px 30px rgba(15, 118, 110, 0.25);
+    }
+
+    .ghost {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .status-box {
+      width: 100%;
+      margin-top: 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      background: #fff;
+      padding: 12px 14px;
+      color: #0f172a;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.45;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+
+    .status {
+      min-height: 24px;
+    }
+
+    .result-box {
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 18px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .result-box h2 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+
+    .result-box pre {
+      margin: 0;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #1f2937;
+    }
+
+    .link {
+      display: inline-block;
+      margin-top: 10px;
+      color: var(--accent-2);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .link:hover { text-decoration: underline; }
+
+    .hint {
+      color: #334155;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.5;
+      margin: 10px 0 0;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .chip {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.09);
+      color: #1d4ed8;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .picker-dialog {
+      width: min(92vw, 760px);
+      background: transparent;
+    }
+
+    .picker-shell {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+
+    .picker-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .picker-title {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .picker-copy {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .picker-search-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .picker-list {
+      display: grid;
+      gap: 10px;
+      max-height: 420px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .picker-item {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid #dbe4f0;
+      background: #f8fafc;
+      padding: 14px 16px;
+      text-align: left;
+    }
+
+    .picker-item:hover {
+      background: #eef2ff;
+      border-color: rgba(37, 99, 235, 0.35);
+    }
+
+    .picker-item-name {
+      display: block;
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+
+    .picker-item-meta {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #475569;
+      line-height: 1.4;
+    }
+
+    .picker-empty {
+      border: 1px dashed #cbd5e1;
+      border-radius: 14px;
+      padding: 18px;
+      color: #475569;
+      background: #f8fafc;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .picker-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .panel { grid-template-columns: 1fr; }
+      .form-side { border-right: 0; border-bottom: 1px solid var(--border); }
+      .row { grid-template-columns: 1fr; }
+      body { padding: 12px; }
+      .picker-search-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="hero">
+      <div class="eyebrow">DigiKey BOM Import</div>
+      <h1>Paste a BOM. Get stock and price. Export it to Drive.</h1>
+      <p>
+        Drop in the tab-delimited BOM you shared, choose the output filename, and the app will look up each line item
+        against DigiKey. If Google Drive upload is configured, the result is written directly to your Drive; otherwise
+        the CSV is prepared locally for copy or upload.
+      </p>
+    </div>
+
+    <dialog id="quoteDialog" open>
+      <div class="card panel">
+        <section class="form-side">
+          <div class="section-title">Import and lookup</div>
+          <p class="section-copy">
+            The importer expects the first row to be a header row with tab-separated columns like Item, Reference
+            Designators, Qty, Manufacturer, Manufacturer Part Number, Description, and Package.
+          </p>
+
+          <form id="quoteForm">
+            <label for="filename">Output filename</label>
+            <input id="filename" class="filename-input" name="filename" type="text" autocomplete="off" />
+
+            <label for="bomText">Tab-delimited BOM</label>
+            <textarea id="bomText" name="bomText" spellcheck="false" placeholder="Paste the BOM text here..."></textarea>
+
+            <div class="buttons">
+              <button class="primary" id="runButton" type="submit">Lookup and export</button>
+              <button class="ghost" id="googleAuthButton" type="button">Sign in to Google Drive</button>
+              <button class="ghost" id="loadSampleButton" type="button">Load sample BOM</button>
+              <button class="ghost" id="copyButton" type="button">Copy export text</button>
+            </div>
+          </form>
+
+          <div class="status-box">
+            <div class="status" id="status">Ready for a BOM.</div>
+            <div class="hint" id="driveAuthHint">Google Drive sign-in status is loading.</div>
+          </div>
+          <div class="chip-row">
+            <div class="chip">Dialog</div>
+            <div class="chip">Filename textbox</div>
+            <div class="chip">Google Drive upload</div>
+            <div class="chip">DigiKey lookup</div>
+          </div>
+        </section>
+
+        <section class="result-side">
+          <div class="section-title">Output</div>
+          <p class="section-copy">
+            The export preview and Drive upload result appear here after lookup.
+          </p>
+
+          <div class="result-box">
+            <h2>Summary</h2>
+            <pre id="summary">No lookup has run yet.</pre>
+          </div>
+
+          <div class="result-box">
+            <h2>Export preview</h2>
+            <pre id="preview">The CSV output will appear here.</pre>
+            <a id="driveLink" class="link" href="#" target="_blank" rel="noreferrer" hidden>Open Google Drive file</a>
+          </div>
+
+          <div class="result-box">
+            <h2>Notes</h2>
+            <pre id="notes">If the host exposes window.openai, the widget calls the ChatGPT app tool directly. Otherwise it falls back to the local /mcp endpoint for browser preview.</pre>
+          </div>
+        </section>
+      </div>
+    </dialog>
+
+    <dialog id="drivePickerDialog" class="picker-dialog">
+      <div class="picker-shell">
+        <div class="picker-header">
+          <div>
+            <h2 class="picker-title">Choose a Google Drive BOM file</h2>
+            <p class="picker-copy">Pick a Drive file to import into the BOM box before the DigiKey lookup begins.</p>
+          </div>
+        </div>
+        <div class="picker-search-row">
+          <input id="drivePickerSearch" type="text" autocomplete="off" placeholder="Search Drive files by name..." />
+          <button class="ghost" id="drivePickerRefreshButton" type="button">Refresh</button>
+          <button class="ghost" id="drivePickerCloseButton" type="button">Cancel</button>
+        </div>
+        <div id="drivePickerList" class="picker-list">
+          <div class="picker-empty">Drive files will appear here.</div>
+        </div>
+        <div class="picker-footer">
+          <button class="ghost" id="drivePickerCancelButton" type="button">Close</button>
+        </div>
+      </div>
+    </dialog>
+
+  </div>
+
+  <script>
+    const SAMPLE_BOM = `Item\tReference Designators\tQty\tManufacturer\tManufacturer Part Number\tDescription\tPackage
+1\tU1\t1\tSTMicroelectronics\tSTM32F411CEU6\t32-bit ARM Cortex-M4 MCU, 512KB Flash\tUFQFPN-48
+2\tU2\t1\tMicrochip Technology\tMCP1700T-3302E/TT\t3.3V LDO Regulator\tSOT-23
+3\tU3\t1\tTexas Instruments\tTPS2051BDBVR\tUSB Power Switch\tSOT-23-5`;
+
+    const dialog = document.getElementById('quoteDialog');
+    const form = document.getElementById('quoteForm');
+    const filenameInput = document.getElementById('filename');
+    const bomTextArea = document.getElementById('bomText');
+    const runButton = document.getElementById('runButton');
+    const googleAuthButton = document.getElementById('googleAuthButton');
+    const loadSampleButton = document.getElementById('loadSampleButton');
+    const copyButton = document.getElementById('copyButton');
+    const statusEl = document.getElementById('status');
+    const driveAuthHintEl = document.getElementById('driveAuthHint');
+    const summaryEl = document.getElementById('summary');
+    const previewEl = document.getElementById('preview');
+    const notesEl = document.getElementById('notes');
+    const driveLink = document.getElementById('driveLink');
+    const drivePickerDialog = document.getElementById('drivePickerDialog');
+    const drivePickerSearch = document.getElementById('drivePickerSearch');
+    const drivePickerRefreshButton = document.getElementById('drivePickerRefreshButton');
+    const drivePickerCloseButton = document.getElementById('drivePickerCloseButton');
+    const drivePickerCancelButton = document.getElementById('drivePickerCancelButton');
+    const drivePickerList = document.getElementById('drivePickerList');
+    let lastExportText = '';
+    let sessionReady = false;
+    let rpcId = 1;
+    let isGoogleDriveConnected = false;
+    let drivePickerResolve = null;
+
+    loadSampleButton.addEventListener('click', () => {
+      bomTextArea.value = SAMPLE_BOM;
+      syncFilenameInput('sample');
+      statusEl.textContent = 'Sample BOM loaded.';
+    });
+
+    googleAuthButton.addEventListener('click', async () => {
+      if (!supportsLocalDriveAuth()) {
+        driveAuthHintEl.textContent = 'Google Drive sign-in is available in the local preview served from the app server.';
+        return;
+      }
+
+      if (isGoogleDriveConnected) {
+        googleAuthButton.disabled = true;
+        driveAuthHintEl.textContent = 'Disconnecting Google Drive...';
+        try {
+          const response = await fetch('/auth/google/disconnect', {
+            method: 'POST'
+          });
+          if (!response.ok) {
+            throw new Error(`Disconnect failed with HTTP ${response.status} ${response.statusText}`);
+          }
+        } catch (error) {
+          driveAuthHintEl.textContent = `Could not disconnect Google Drive: ${error instanceof Error ? error.message : String(error)}`;
+        } finally {
+          googleAuthButton.disabled = false;
+          await refreshDriveAuthStatus();
+        }
+        return;
+      }
+
+      await beginGoogleDriveSignIn();
+    });
+
+    drivePickerRefreshButton.addEventListener('click', async () => {
+      await refreshDrivePickerList();
+    });
+
+    drivePickerSearch.addEventListener('keydown', async (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        await refreshDrivePickerList();
+      }
+    });
+
+    drivePickerCloseButton.addEventListener('click', () => {
+      closeDrivePicker(null);
+    });
+
+    drivePickerCancelButton.addEventListener('click', () => {
+      closeDrivePicker(null);
+    });
+
+    drivePickerDialog.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      closeDrivePicker(null);
+    });
+
+    drivePickerDialog.addEventListener('close', () => {
+      if (drivePickerResolve) {
+        closeDrivePicker(null);
+      }
+    });
+
+    copyButton.addEventListener('click', async () => {
+      if (!lastExportText) {
+        statusEl.textContent = 'Nothing to copy yet.';
+        return;
+      }
+      await navigator.clipboard.writeText(lastExportText);
+      syncFilenameInput('export-copy');
+      statusEl.textContent = 'Export text copied to clipboard.';
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      await startLookupAndExportFlow();
+    });
+
+    async function startLookupAndExportFlow() {
+      runButton.disabled = true;
+      driveLink.hidden = true;
+      driveLink.removeAttribute('href');
+      summaryEl.textContent = 'Working...';
+      previewEl.textContent = 'Working...';
+      notesEl.textContent = 'Preparing Google Drive import...';
+
+      try {
+        await refreshDriveAuthStatus();
+
+        if (!isGoogleDriveConnected) {
+          const connected = await beginGoogleDriveSignIn();
+          if (!connected) {
+            statusEl.textContent = 'Lookup canceled before Drive sign-in completed.';
+            summaryEl.textContent = 'Google Drive sign-in was canceled or did not complete.';
+            previewEl.textContent = '';
+            notesEl.textContent = 'The lookup flow now starts from a Google Drive file selection.';
+            return;
+          }
+        }
+
+        statusEl.textContent = 'Choose a BOM file from Google Drive...';
+        const selectedFile = await openDrivePicker();
+        if (!selectedFile) {
+          statusEl.textContent = 'Lookup canceled before a Drive file was selected.';
+          summaryEl.textContent = 'No Drive file was selected.';
+          previewEl.textContent = '';
+          notesEl.textContent = 'Pick a Drive BOM file to continue the lookup and export flow.';
+          return;
+        }
+
+        statusEl.textContent = `Importing ${selectedFile.name} from Google Drive...`;
+        const imported = await importDriveFile(selectedFile.id);
+        bomTextArea.value = imported.text || '';
+        filenameInput.value = buildOutputFilenameFromImportedFile(imported.name || selectedFile.name || 'Imported BOM');
+
+        const bomText = bomTextArea.value.trim();
+        const outputFilename = filenameInput.value.trim();
+
+        if (!bomText) {
+          statusEl.textContent = 'The selected Drive file did not contain BOM text.';
+          bomTextArea.focus();
+          summaryEl.textContent = 'Import completed, but no BOM text was found.';
+          previewEl.textContent = '';
+          notesEl.textContent = 'Use a plain text, TSV, CSV, or Google Sheets file that contains the BOM table.';
+          return;
+        }
+
+        statusEl.textContent = 'Looking up DigiKey stock and pricing...';
+        notesEl.textContent = `Imported from Google Drive file: ${imported.name || selectedFile.name}`;
+        const result = await callTool('bom.lookup_and_export', {
+          bomText,
+          outputFilename
+        });
+        const structured = unwrapStructuredContent(result);
+        renderResult(structured, result);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        statusEl.textContent = 'Lookup failed.';
+        summaryEl.textContent = message;
+        previewEl.textContent = '';
+        notesEl.textContent = 'If this is a live lookup, confirm DigiKey credentials, Google Drive access, and the selected file format.';
+      } finally {
+        runButton.disabled = false;
+      }
+    }
+
+    async function beginGoogleDriveSignIn() {
+      googleAuthButton.disabled = true;
+      driveAuthHintEl.textContent = 'Opening Google sign-in...';
+
+      const popup = window.open('/auth/google/start', 'google-drive-auth', 'popup=yes,width=520,height=720');
+      if (!popup) {
+        googleAuthButton.disabled = false;
+        driveAuthHintEl.textContent = 'The sign-in popup was blocked. Allow popups for this page and try again.';
+        return false;
+      }
+
+      return new Promise((resolve) => {
+        let resolved = false;
+        const finish = async (success, message) => {
+          if (resolved) return;
+          resolved = true;
+          googleAuthButton.disabled = false;
+          if (message) {
+            driveAuthHintEl.textContent = message;
+          }
+          await refreshDriveAuthStatus();
+          resolve(Boolean(success));
+        };
+
+        const messageHandler = async (event) => {
+          if (event.origin !== window.location.origin) {
+            return;
+          }
+          if (event.data?.type !== 'google-drive-auth-result') {
+            return;
+          }
+          window.removeEventListener('message', messageHandler);
+          window.clearInterval(pollTimer);
+          await finish(event.data.success, event.data.success ? 'Google Drive is connected.' : event.data.message || 'Google Drive sign-in failed.');
+        };
+
+        window.addEventListener('message', messageHandler);
+
+        const pollTimer = window.setInterval(async () => {
+          if (popup.closed) {
+            window.clearInterval(pollTimer);
+            window.removeEventListener('message', messageHandler);
+            await finish(false, 'Google sign-in window closed.');
+          }
+        }, 500);
+      });
+    }
+
+    async function openDrivePicker() {
+      if (typeof drivePickerDialog.showModal === 'function') {
+        drivePickerDialog.showModal();
+      } else {
+        drivePickerDialog.setAttribute('open', 'open');
+      }
+
+      drivePickerSearch.value = '';
+      drivePickerList.innerHTML = '<div class="picker-empty">Loading Google Drive files...</div>';
+      await refreshDrivePickerList();
+
+      return new Promise((resolve) => {
+        drivePickerResolve = resolve;
+      });
+    }
+
+    function closeDrivePicker(selection) {
+      const resolve = drivePickerResolve;
+      drivePickerResolve = null;
+
+      if (typeof drivePickerDialog.close === 'function') {
+        drivePickerDialog.close();
+      } else {
+        drivePickerDialog.removeAttribute('open');
+      }
+
+      if (resolve) {
+        resolve(selection ?? null);
+      }
+    }
+
+    async function refreshDrivePickerList() {
+      drivePickerRefreshButton.disabled = true;
+      drivePickerList.innerHTML = '<div class="picker-empty">Loading Google Drive files...</div>';
+
+      try {
+        const response = await fetch(`/auth/google/files?q=${encodeURIComponent(drivePickerSearch.value.trim())}`);
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data?.error || `Drive list failed with HTTP ${response.status}`);
+        }
+
+        renderDrivePickerFiles(Array.isArray(data.files) ? data.files : []);
+      } catch (error) {
+        drivePickerList.innerHTML = `<div class="picker-empty">Could not load Google Drive files: ${escapeHtml(error instanceof Error ? error.message : String(error))}</div>`;
+      } finally {
+        drivePickerRefreshButton.disabled = false;
+      }
+    }
+
+    function renderDrivePickerFiles(files) {
+      if (!files.length) {
+        drivePickerList.innerHTML = '<div class="picker-empty">No importable Google Drive files were found.</div>';
+        return;
+      }
+
+      drivePickerList.innerHTML = '';
+      for (const file of files) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'picker-item';
+        button.innerHTML = `
+          <span class="picker-item-name">${escapeHtml(file.name || 'Unnamed file')}</span>
+          <span class="picker-item-meta">${escapeHtml(formatDriveFileMeta(file))}</span>
+        `;
+        button.addEventListener('click', () => {
+          closeDrivePicker(file);
+        });
+        drivePickerList.appendChild(button);
+      }
+    }
+
+    async function importDriveFile(fileId) {
+      const response = await fetch(`/auth/google/file-content?id=${encodeURIComponent(fileId)}`);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || `Drive import failed with HTTP ${response.status}`);
+      }
+      return data;
+    }
+
+    function buildOutputFilenameFromImportedFile(sourceName) {
+      const base = String(sourceName || 'Imported BOM')
+        .replace(/\.[^.]+$/, '')
+        .replace(/[\\/:*?"<>|]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      return `${base || 'Digikey costed BOM'} ${getDateCode()}.csv`;
+    }
+
+    function formatDriveFileMeta(file) {
+      const parts = [];
+      if (file.mimeType) {
+        parts.push(file.mimeType);
+      }
+      if (file.modifiedTime) {
+        const date = new Date(file.modifiedTime);
+        if (!Number.isNaN(date.getTime())) {
+          parts.push(`Updated ${date.toLocaleString()}`);
+        }
+      }
+      return parts.join(' • ') || 'Google Drive file';
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function renderResult(structured, raw) {
+      const outputFilename = structured?.outputFilename || filenameInput.value.trim() || getDefaultOutputFilename();
+      filenameInput.value = outputFilename;
+      const rowCount = structured?.rowCount ?? structured?.rows?.length ?? 0;
+      const driveUpload = structured?.driveUpload || {};
+      lastExportText = structured?.exportText || '';
+      summaryEl.textContent = [
+        `File: ${outputFilename}`,
+        `Rows processed: ${rowCount}`,
+        `Drive status: ${driveUpload.status || 'unknown'}`
+      ].join('\n');
+      previewEl.textContent = lastExportText || 'No export text returned.';
+      notesEl.textContent = structured?.rows?.map((row) => row.notes).filter(Boolean).join('\n') || 'No row-specific notes returned.';
+
+      if (driveUpload.status === 'uploaded' && driveUpload.file?.webViewLink) {
+        driveLink.href = driveUpload.file.webViewLink;
+        driveLink.textContent = `Open Google Drive file: ${driveUpload.file.name || outputFilename}`;
+        driveLink.hidden = false;
+        statusEl.textContent = 'Export uploaded to Google Drive.';
+      } else if (driveUpload.status === 'not_configured') {
+        statusEl.textContent = 'Google Drive upload is not configured, so the CSV was prepared locally.';
+      } else if (driveUpload.status === 'error') {
+        statusEl.textContent = 'Google Drive upload failed, but the export preview is still available.';
+        notesEl.textContent = [notesEl.textContent, driveUpload.error || 'Unknown upload error.'].filter(Boolean).join('\n');
+      } else {
+        statusEl.textContent = 'Lookup complete.';
+      }
+
+      if (raw?.content?.[0]?.text) {
+        summaryEl.textContent += `\n\n${raw.content[0].text}`;
+      }
+    }
+
+    function unwrapStructuredContent(result) {
+      if (!result) {
+        return null;
+      }
+      if (result.structuredContent) {
+        return result.structuredContent;
+      }
+      if (result.result?.structuredContent) {
+        return result.result.structuredContent;
+      }
+      if (result.result) {
+        return result.result;
+      }
+      return result;
+    }
+
+    async function callTool(name, args) {
+      if (window.openai?.callTool) {
+        return window.openai.callTool(name, args);
+      }
+
+      await ensureLocalSession();
+      const response = await rpc('tools/call', {
+        name,
+        arguments: args
+      });
+      return response.result;
+    }
+
+    async function ensureLocalSession() {
+      if (sessionReady) {
+        return;
+      }
+      await rpc('initialize', {
+        protocolVersion: '2025-03-26',
+        capabilities: {},
+        clientInfo: {
+          name: 'digikey-bom-preview',
+          version: '0.2.0'
+        }
+      });
+      try {
+        await rpc('notifications/initialized', {});
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (!/Method not found/i.test(message)) {
+          throw error;
+        }
+      }
+      sessionReady = true;
+    }
+
+    async function rpc(method, params) {
+      const response = await fetch('/mcp', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          accept: 'application/json, text/event-stream'
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: rpcId++,
+          method,
+          params
+        })
+      });
+
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error.message || 'MCP request failed');
+      }
+      return data;
+    }
+
+    async function refreshDriveAuthStatus() {
+      if (!supportsLocalDriveAuth()) {
+        isGoogleDriveConnected = false;
+        googleAuthButton.disabled = true;
+        googleAuthButton.textContent = 'Sign in to Google Drive';
+        driveAuthHintEl.textContent = 'Open the app through the local preview to connect Google Drive from the browser.';
+        return;
+      }
+
+      try {
+        const response = await fetch('/auth/google/status');
+        const data = await response.json();
+        isGoogleDriveConnected = Boolean(data.connected);
+        googleAuthButton.disabled = false;
+        if (data.connected) {
+          googleAuthButton.textContent = 'Connected';
+          driveAuthHintEl.textContent = 'Google Drive is connected through the browser sign-in flow. Click Connected to disconnect.';
+        } else if (data.ready) {
+          googleAuthButton.textContent = 'Sign in to Google Drive';
+          driveAuthHintEl.textContent = 'Google Drive credentials are configured from the local environment. Use browser sign-in if you want a disconnectable local session.';
+        } else {
+          googleAuthButton.textContent = 'Sign in to Google Drive';
+          driveAuthHintEl.textContent = 'Google Drive is not connected yet. Use the sign-in button to authorize uploads.';
+        }
+      } catch (error) {
+        isGoogleDriveConnected = false;
+        googleAuthButton.disabled = false;
+        googleAuthButton.textContent = 'Sign in to Google Drive';
+        driveAuthHintEl.textContent = `Could not read Google Drive sign-in status: ${error instanceof Error ? error.message : String(error)}`;
+      }
+    }
+
+    function supportsLocalDriveAuth() {
+      return window.location.protocol === 'http:' || window.location.protocol === 'https:';
+    }
+
+    if (!bomTextArea.value) {
+      bomTextArea.value = SAMPLE_BOM;
+    }
+
+    if (!filenameInput.value.trim()) {
+      syncFilenameInput('default');
+    }
+
+    statusEl.textContent = window.openai?.callTool
+      ? 'Connected to ChatGPT app tools. Paste a BOM and run the lookup.'
+      : 'Local preview mode is active. Paste a BOM and run the lookup.';
+    void refreshDriveAuthStatus();
+
+    function getDateCode(date = new Date()) {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).formatToParts(date);
+      const values = Object.fromEntries(parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]));
+      return `${values.year}-${values.month}-${values.day}`;
+    }
+
+    function getDefaultOutputFilename() {
+      return `Digikey costed BOM ${getDateCode()}.csv`;
+    }
+
+    function syncFilenameInput(reason) {
+      if (reason === 'sample') {
+        filenameInput.value = `Digikey costed BOM sample ${getDateCode()}.csv`;
+        return;
+      }
+
+      if (reason === 'export-copy') {
+        filenameInput.value = `Digikey costed BOM export ${getDateCode()}.csv`;
+        return;
+      }
+
+      filenameInput.value = getDefaultOutputFilename();
+    }
+  </script>
+</body>
+</html>
