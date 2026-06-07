@@ -3,21 +3,22 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>DigiKey BOM Quote</title>
+  <title>DigiKey BOM Import</title>
   <style>
     :root {
       color-scheme: light;
-      --bg: #0f172a;
-      --panel: rgba(255, 255, 255, 0.94);
-      --panel-strong: #ffffff;
-      --text: #0f172a;
-      --muted: #475569;
-      --accent: #0f766e;
-      --accent-2: #2563eb;
-      --border: rgba(15, 23, 42, 0.12);
-      --shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+      --bg: #edf3f8;
+      --bg-strong: #dce8f3;
+      --hero: linear-gradient(180deg, #eef7ff 0%, #e4f1fb 100%);
+      --panel: rgba(255, 255, 255, 0.97);
+      --text: #152235;
+      --muted: #526375;
+      --accent: #0e7a76;
+      --accent-2: #2d6edf;
+      --border: rgba(21, 34, 53, 0.12);
+      --shadow: 0 24px 54px rgba(54, 78, 107, 0.16);
       --radius: 20px;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: "Segoe UI", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
     * { box-sizing: border-box; }
@@ -26,57 +27,54 @@
       margin: 0;
       min-height: 100vh;
       background:
-        radial-gradient(circle at top left, rgba(37, 99, 235, 0.18), transparent 28%),
-        radial-gradient(circle at top right, rgba(15, 118, 110, 0.18), transparent 24%),
-        linear-gradient(180deg, #0f172a 0%, #111827 28%, #f8fafc 28%, #f8fafc 100%);
+        radial-gradient(circle at top right, rgba(45, 110, 223, 0.10), transparent 24%),
+        radial-gradient(circle at top left, rgba(14, 122, 118, 0.10), transparent 22%),
+        linear-gradient(180deg, var(--bg-strong) 0%, var(--bg) 38%, #f7fbff 100%);
       color: var(--text);
-      padding: 24px;
+      padding: 28px;
     }
 
     .shell {
-      max-width: 1080px;
+      max-width: 980px;
       margin: 0 auto;
     }
 
     .hero {
-      color: #e2e8f0;
-      padding: 12px 4px 24px;
+      background: var(--hero);
+      border: 1px solid rgba(45, 110, 223, 0.10);
+      border-radius: 28px;
+      padding: 24px 26px 28px;
+      box-shadow: var(--shadow);
+      color: var(--text);
     }
 
     .eyebrow {
       text-transform: uppercase;
       letter-spacing: 0.18em;
-      font-size: 12px;
-      color: #7dd3fc;
-      margin-bottom: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent-2);
+      margin-bottom: 12px;
     }
 
     h1 {
       margin: 0;
-      font-size: clamp(30px, 5vw, 54px);
-      line-height: 0.98;
-      max-width: 12ch;
+      font-size: clamp(34px, 6vw, 62px);
+      line-height: 0.96;
+      max-width: 10ch;
+      color: #17304c;
     }
 
     .hero p {
-      margin: 12px 0 0;
-      max-width: 68ch;
-      color: #cbd5e1;
+      margin: 14px 0 0;
+      max-width: 64ch;
+      color: #2d4a69;
       font-size: 15px;
       line-height: 1.6;
     }
 
-    .card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      backdrop-filter: blur(14px);
-    }
-
     dialog {
-      width: min(100%, 1080px);
+      width: min(100%, 980px);
       border: 0;
       border-radius: var(--radius);
       padding: 0;
@@ -85,35 +83,24 @@
     }
 
     dialog::backdrop {
-      background: rgba(2, 6, 23, 0.68);
-      backdrop-filter: blur(6px);
+      background: rgba(24, 36, 50, 0.30);
+      backdrop-filter: blur(4px);
     }
 
-    .panel {
-      display: grid;
-      grid-template-columns: 1.05fr 0.95fr;
-      min-height: 700px;
-    }
-
-    .form-side,
-    .result-side {
+    .card {
+      margin-top: 18px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
       padding: 24px;
-    }
-
-    .form-side {
-      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-      border-right: 1px solid var(--border);
-    }
-
-    .result-side {
-      background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
     }
 
     .section-title {
       margin: 0 0 6px;
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0.06em;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--accent);
     }
@@ -122,60 +109,90 @@
       margin: 0 0 18px;
       color: var(--muted);
       font-size: 14px;
-      line-height: 1.5;
+      line-height: 1.55;
     }
 
     label {
       display: block;
+      margin: 16px 0 8px;
       font-size: 13px;
       font-weight: 700;
-      margin: 16px 0 8px;
-      color: #111827;
+      color: #18273a;
     }
 
-    input,
+    input:not([type="checkbox"]),
     textarea {
       width: 100%;
-      border: 1px solid #cbd5e1;
+      border: 1px solid #cad8e4;
       border-radius: 14px;
       background: #fff;
       color: var(--text);
       padding: 12px 14px;
       font: inherit;
       outline: none;
-      transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    input:not([type="checkbox"]):focus,
+    textarea:focus {
+      border-color: rgba(45, 110, 223, 0.75);
+      box-shadow: 0 0 0 4px rgba(45, 110, 223, 0.12);
     }
 
     textarea {
-      min-height: 280px;
+      min-height: 300px;
       resize: vertical;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       line-height: 1.45;
       white-space: pre;
     }
 
-    input:focus,
-    textarea:focus {
-      border-color: rgba(37, 99, 235, 0.7);
-      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    .field-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 10px;
+      align-items: center;
     }
 
     .filename-input {
       font-size: 16px;
       font-weight: 700;
-      letter-spacing: 0.01em;
     }
 
-    .row {
-      display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 12px;
+    .source-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      justify-self: end;
+      padding: 10px 12px;
+      border: 1px solid #cfe0ed;
+      border-radius: 14px;
+      background: #f6fbff;
+      color: #203247;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
     }
 
-    .buttons {
+    .source-toggle input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--accent-2);
+    }
+
+    .field-help {
+      margin-top: 6px;
+      color: #526375;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.45;
+    }
+
+    .button-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 12px;
       margin-top: 18px;
     }
 
@@ -183,7 +200,7 @@
       appearance: none;
       border: 0;
       border-radius: 999px;
-      padding: 12px 16px;
+      padding: 12px 18px;
       font: inherit;
       font-weight: 700;
       cursor: pointer;
@@ -196,112 +213,113 @@
     .primary {
       color: white;
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      box-shadow: 0 14px 30px rgba(15, 118, 110, 0.25);
+      box-shadow: 0 14px 28px rgba(45, 110, 223, 0.24);
     }
 
     .ghost {
-      background: #e2e8f0;
-      color: #0f172a;
+      background: #edf5fb;
+      color: #203247;
+      border: 1px solid #cfe0ed;
+    }
+
+    .browse-button {
+      min-width: 94px;
+      justify-self: end;
     }
 
     .status-box {
       width: 100%;
-      margin-top: 14px;
-      border: 1px solid #cbd5e1;
+      margin-top: 16px;
+      border: 1px solid #cad8e4;
       border-radius: 14px;
-      background: #fff;
-      padding: 12px 14px;
-      color: #0f172a;
-      font-size: 16px;
-      font-weight: 700;
-      line-height: 1.45;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      background: #fbfdff;
+      padding: 14px 16px;
+      color: #17304c;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
     }
 
     .status {
       min-height: 24px;
-    }
-
-    .result-box {
-      background: rgba(255, 255, 255, 0.82);
-      border: 1px solid rgba(15, 23, 42, 0.08);
-      border-radius: 18px;
-      padding: 16px;
-      margin-bottom: 14px;
-    }
-
-    .result-box h2 {
-      margin: 0 0 8px;
-      font-size: 16px;
-    }
-
-    .result-box pre {
-      margin: 0;
-      white-space: pre-wrap;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 12px;
-      line-height: 1.45;
-      color: #1f2937;
-    }
-
-    .link {
-      display: inline-block;
-      margin-top: 10px;
-      color: var(--accent-2);
-      font-weight: 700;
-      text-decoration: none;
-    }
-
-    .link:hover { text-decoration: underline; }
-
-    .hint {
-      color: #334155;
       font-size: 15px;
       font-weight: 700;
+      line-height: 1.45;
+    }
+
+    .hint {
+      margin-top: 8px;
+      color: #35506d;
+      font-size: 14px;
+      font-weight: 600;
       line-height: 1.5;
-      margin: 10px 0 0;
     }
 
-    .chip-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
+    .progress-panel {
       margin-top: 12px;
+      padding: 12px 14px;
+      border: 1px solid #cad8e4;
+      border-radius: 14px;
+      background: #ffffff;
     }
 
-    .chip {
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: rgba(37, 99, 235, 0.09);
-      color: #1d4ed8;
-      font-size: 12px;
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      margin-bottom: 8px;
+      color: #17304c;
+      font-size: 13px;
       font-weight: 700;
     }
 
-    .picker-dialog {
+    .progress-track {
+      width: 100%;
+      height: 12px;
+      border-radius: 999px;
+      background: #dce6f0;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 180ms ease;
+    }
+
+    .progress-meta {
+      margin-top: 8px;
+      color: #35506d;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.45;
+      min-height: 18px;
+    }
+
+    .picker-dialog,
+    .settings-dialog {
       width: min(92vw, 760px);
       background: transparent;
     }
 
-    .picker-shell {
+    .picker-shell,
+    .settings-shell {
       background: #ffffff;
       border: 1px solid var(--border);
-      border-radius: 18px;
+      border-radius: 20px;
       box-shadow: var(--shadow);
       padding: 22px;
     }
 
     .picker-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
       margin-bottom: 14px;
     }
 
     .picker-title {
       margin: 0;
       font-size: 22px;
+      color: #17304c;
     }
 
     .picker-copy {
@@ -336,8 +354,8 @@
     }
 
     .picker-item:hover {
-      background: #eef2ff;
-      border-color: rgba(37, 99, 235, 0.35);
+      background: #eef5ff;
+      border-color: rgba(45, 110, 223, 0.35);
     }
 
     .picker-item-name {
@@ -374,12 +392,55 @@
       margin-top: 16px;
     }
 
-    @media (max-width: 900px) {
-      .panel { grid-template-columns: 1fr; }
-      .form-side { border-right: 0; border-bottom: 1px solid var(--border); }
-      .row { grid-template-columns: 1fr; }
-      body { padding: 12px; }
-      .picker-search-row { grid-template-columns: 1fr; }
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .settings-grid .full {
+      grid-column: 1 / -1;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+      color: #0f172a;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .checkbox-row input {
+      width: auto;
+      margin: 0;
+    }
+
+    .settings-note {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .hidden-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @media (max-width: 720px) {
+      body { padding: 14px; }
+      .hero { padding: 20px; }
+      .card { padding: 18px; }
+      .field-row,
+      .picker-search-row,
+      .settings-grid { grid-template-columns: 1fr; }
+      .browse-button,
+      .source-toggle { justify-self: stretch; }
     }
   </style>
 </head>
@@ -389,80 +450,74 @@
       <div class="eyebrow">DigiKey BOM Import</div>
       <h1>Paste a BOM. Get stock and price. Export it to Drive.</h1>
       <p>
-        Drop in the tab-delimited BOM you shared, choose the output filename, and the app will look up each line item
-        against DigiKey. If Google Drive upload is configured, the result is written directly to your Drive; otherwise
-        the CSV is prepared locally for copy or upload.
+        Drop in the tab-delimited BOM you shared, choose the input and output filenames, and the app will look up each
+        line item against DigiKey. If Google Drive upload is configured, the result is written directly to your Drive.
       </p>
     </div>
 
     <dialog id="quoteDialog" open>
-      <div class="card panel">
-        <section class="form-side">
-          <div class="section-title">Import and lookup</div>
-          <p class="section-copy">
-            The importer expects the first row to be a header row with tab-separated columns like Item, Reference
-            Designators, Qty, Manufacturer, Manufacturer Part Number, Description, and Package.
-          </p>
+      <div class="card">
+        <div class="section-title">Import and lookup</div>
+        <p class="section-copy">
+          The importer expects the first row to be a header row with tab-separated columns like Item, Reference
+          Designators, Qty, Manufacturer, Manufacturer Part Number, Description, and Package.
+        </p>
 
-          <form id="quoteForm">
-            <label for="filename">Output filename</label>
-            <input id="filename" class="filename-input" name="filename" type="text" autocomplete="off" />
-
-            <label for="bomText">Tab-delimited BOM</label>
-            <textarea id="bomText" name="bomText" spellcheck="false" placeholder="Paste the BOM text here..."></textarea>
-
-            <div class="buttons">
-              <button class="primary" id="runButton" type="submit">Lookup and export</button>
-              <button class="ghost" id="googleAuthButton" type="button">Sign in to Google Drive</button>
-              <button class="ghost" id="loadSampleButton" type="button">Load sample BOM</button>
-              <button class="ghost" id="copyButton" type="button">Copy export text</button>
-            </div>
-          </form>
-
-          <div class="status-box">
-            <div class="status" id="status">Ready for a BOM.</div>
-            <div class="hint" id="driveAuthHint">Google Drive sign-in status is loading.</div>
+        <form id="quoteForm">
+          <label for="inputFilename">Input filename</label>
+          <div class="field-row">
+            <input id="inputFilename" class="filename-input" name="inputFilename" type="text" autocomplete="off" />
+            <label class="source-toggle" for="inputUseDrive">
+              <input id="inputUseDrive" type="checkbox" />
+              <span>Use Google Drive</span>
+            </label>
+            <button class="ghost browse-button" id="inputBrowseButton" type="button">Browse</button>
           </div>
-          <div class="chip-row">
-            <div class="chip">Dialog</div>
-            <div class="chip">Filename textbox</div>
-            <div class="chip">Google Drive upload</div>
-            <div class="chip">DigiKey lookup</div>
-          </div>
-        </section>
+          <div class="field-help">Checked browses Google Drive. Unchecked browses files on this computer.</div>
 
-        <section class="result-side">
-          <div class="section-title">Output</div>
-          <p class="section-copy">
-            The export preview and Drive upload result appear here after lookup.
-          </p>
-
-          <div class="result-box">
-            <h2>Summary</h2>
-            <pre id="summary">No lookup has run yet.</pre>
+          <label for="outputFilename">Output filename</label>
+          <div class="field-row">
+            <input id="outputFilename" class="filename-input" name="outputFilename" type="text" autocomplete="off" />
+            <label class="source-toggle" for="outputUseDrive">
+              <input id="outputUseDrive" type="checkbox" checked />
+              <span>Use Google Drive</span>
+            </label>
+            <button class="ghost browse-button" id="outputBrowseButton" type="button">Browse</button>
           </div>
+          <div class="field-help">Checked uses Google Drive naming and file selection help. Unchecked uses a local save picker.</div>
 
-          <div class="result-box">
-            <h2>Export preview</h2>
-            <pre id="preview">The CSV output will appear here.</pre>
-            <a id="driveLink" class="link" href="#" target="_blank" rel="noreferrer" hidden>Open Google Drive file</a>
-          </div>
+          <label for="bomText">Tab-delimited BOM</label>
+          <textarea id="bomText" name="bomText" spellcheck="false" placeholder="Paste the BOM text here..."></textarea>
 
-          <div class="result-box">
-            <h2>Notes</h2>
-            <pre id="notes">If the host exposes window.openai, the widget calls the ChatGPT app tool directly. Otherwise it falls back to the local /mcp endpoint for browser preview.</pre>
+          <div class="button-row">
+            <button class="primary" id="runButton" type="submit">Start</button>
+            <button class="ghost" id="googleAuthButton" type="button">Sign in to Google Drive</button>
+            <button class="ghost" id="digikeySettingsButton" type="button">DigiKey API credentials</button>
           </div>
-        </section>
+        </form>
+
+        <div class="status-box">
+          <div class="status" id="status">Local preview mode is active. Load a BOM and press Start.</div>
+          <div class="hint" id="driveAuthHint">Google Drive sign-in status is loading.</div>
+        </div>
+        <div class="progress-panel" aria-live="polite">
+          <div class="progress-header">
+            <span>Processing progress</span>
+            <span id="progressCount">0 / 0 (0%)</span>
+          </div>
+          <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="BOM processing progress">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-meta" id="progressMeta">Waiting to start.</div>
+        </div>
       </div>
     </dialog>
 
     <dialog id="drivePickerDialog" class="picker-dialog">
       <div class="picker-shell">
         <div class="picker-header">
-          <div>
-            <h2 class="picker-title">Choose a Google Drive BOM file</h2>
-            <p class="picker-copy">Pick a Drive file to import into the BOM box before the DigiKey lookup begins.</p>
-          </div>
+          <h2 class="picker-title" id="drivePickerTitle">Choose a Google Drive BOM file</h2>
+          <p class="picker-copy" id="drivePickerCopy">Pick a Drive file to import into the BOM box and update the input filename.</p>
         </div>
         <div class="picker-search-row">
           <input id="drivePickerSearch" type="text" autocomplete="off" placeholder="Search Drive files by name..." />
@@ -478,44 +533,103 @@
       </div>
     </dialog>
 
+    <dialog id="digikeySettingsDialog" class="settings-dialog">
+      <div class="settings-shell">
+        <div class="picker-header">
+          <h2 class="picker-title">DigiKey API credentials</h2>
+          <p class="picker-copy">Enter the DigiKey live API credentials you want saved into the local <code>.env</code> file for this app.</p>
+        </div>
+        <form id="digikeySettingsForm">
+          <div class="settings-grid">
+            <div class="full">
+              <label for="digikeyClientId">Client ID</label>
+              <input id="digikeyClientId" type="text" autocomplete="off" />
+            </div>
+            <div class="full">
+              <label for="digikeyClientSecret">Client secret</label>
+              <input id="digikeyClientSecret" type="password" autocomplete="new-password" placeholder="Leave blank to keep the current saved secret" />
+            </div>
+            <div>
+              <label for="digikeyCustomerId">Customer ID</label>
+              <input id="digikeyCustomerId" type="text" autocomplete="off" />
+            </div>
+            <div>
+              <label for="digikeyAccountId">Account ID</label>
+              <input id="digikeyAccountId" type="text" autocomplete="off" />
+            </div>
+            <div class="full">
+              <label for="digikeyApiBaseUrl">API base URL</label>
+              <input id="digikeyApiBaseUrl" type="text" autocomplete="off" />
+            </div>
+          </div>
+          <label class="checkbox-row" for="digikeyDemoMode">
+            <input id="digikeyDemoMode" type="checkbox" />
+            <span>Keep demo mode on instead of using the live DigiKey API</span>
+          </label>
+          <div class="settings-note" id="digikeySettingsHint">Saving here updates <code>.env</code> and also refreshes the running app settings immediately.</div>
+          <div class="picker-footer">
+            <button class="ghost" id="digikeySettingsCancelButton" type="button">Cancel</button>
+            <button class="primary" id="digikeySettingsSaveButton" type="submit">Save credentials</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
+    <input id="localFileInput" class="hidden-input" type="file" accept=".txt,.csv,.tsv,.bom,text/plain,text/csv,text/tab-separated-values" />
   </div>
 
   <script>
-    const SAMPLE_BOM = `Item\tReference Designators\tQty\tManufacturer\tManufacturer Part Number\tDescription\tPackage
-1\tU1\t1\tSTMicroelectronics\tSTM32F411CEU6\t32-bit ARM Cortex-M4 MCU, 512KB Flash\tUFQFPN-48
-2\tU2\t1\tMicrochip Technology\tMCP1700T-3302E/TT\t3.3V LDO Regulator\tSOT-23
-3\tU3\t1\tTexas Instruments\tTPS2051BDBVR\tUSB Power Switch\tSOT-23-5`;
-
-    const dialog = document.getElementById('quoteDialog');
     const form = document.getElementById('quoteForm');
-    const filenameInput = document.getElementById('filename');
+    const inputFilenameInput = document.getElementById('inputFilename');
+    const outputFilenameInput = document.getElementById('outputFilename');
+    const inputUseDrive = document.getElementById('inputUseDrive');
+    const outputUseDrive = document.getElementById('outputUseDrive');
     const bomTextArea = document.getElementById('bomText');
     const runButton = document.getElementById('runButton');
     const googleAuthButton = document.getElementById('googleAuthButton');
-    const loadSampleButton = document.getElementById('loadSampleButton');
-    const copyButton = document.getElementById('copyButton');
+    const digikeySettingsButton = document.getElementById('digikeySettingsButton');
+    const inputBrowseButton = document.getElementById('inputBrowseButton');
+    const outputBrowseButton = document.getElementById('outputBrowseButton');
+    const localFileInput = document.getElementById('localFileInput');
     const statusEl = document.getElementById('status');
     const driveAuthHintEl = document.getElementById('driveAuthHint');
-    const summaryEl = document.getElementById('summary');
-    const previewEl = document.getElementById('preview');
-    const notesEl = document.getElementById('notes');
-    const driveLink = document.getElementById('driveLink');
+    const progressFill = document.getElementById('progressFill');
+    const progressCount = document.getElementById('progressCount');
+    const progressMeta = document.getElementById('progressMeta');
+
     const drivePickerDialog = document.getElementById('drivePickerDialog');
+    const drivePickerTitle = document.getElementById('drivePickerTitle');
+    const drivePickerCopy = document.getElementById('drivePickerCopy');
     const drivePickerSearch = document.getElementById('drivePickerSearch');
     const drivePickerRefreshButton = document.getElementById('drivePickerRefreshButton');
     const drivePickerCloseButton = document.getElementById('drivePickerCloseButton');
     const drivePickerCancelButton = document.getElementById('drivePickerCancelButton');
     const drivePickerList = document.getElementById('drivePickerList');
-    let lastExportText = '';
+
+    const digikeySettingsDialog = document.getElementById('digikeySettingsDialog');
+    const digikeySettingsForm = document.getElementById('digikeySettingsForm');
+    const digikeyClientIdInput = document.getElementById('digikeyClientId');
+    const digikeyClientSecretInput = document.getElementById('digikeyClientSecret');
+    const digikeyCustomerIdInput = document.getElementById('digikeyCustomerId');
+    const digikeyAccountIdInput = document.getElementById('digikeyAccountId');
+    const digikeyApiBaseUrlInput = document.getElementById('digikeyApiBaseUrl');
+    const digikeyDemoModeInput = document.getElementById('digikeyDemoMode');
+    const digikeySettingsHint = document.getElementById('digikeySettingsHint');
+    const digikeySettingsCancelButton = document.getElementById('digikeySettingsCancelButton');
+    const digikeySettingsSaveButton = document.getElementById('digikeySettingsSaveButton');
+
     let sessionReady = false;
     let rpcId = 1;
     let isGoogleDriveConnected = false;
     let drivePickerResolve = null;
+    let progressPollTimer = null;
 
-    loadSampleButton.addEventListener('click', () => {
-      bomTextArea.value = SAMPLE_BOM;
-      syncFilenameInput('sample');
-      statusEl.textContent = 'Sample BOM loaded.';
+    inputBrowseButton.addEventListener('click', async () => {
+      await browseForInputFile();
+    });
+
+    outputBrowseButton.addEventListener('click', async () => {
+      await browseForOutputFilename();
     });
 
     googleAuthButton.addEventListener('click', async () => {
@@ -528,9 +642,7 @@
         googleAuthButton.disabled = true;
         driveAuthHintEl.textContent = 'Disconnecting Google Drive...';
         try {
-          const response = await fetch('/auth/google/disconnect', {
-            method: 'POST'
-          });
+          const response = await fetch('/auth/google/disconnect', { method: 'POST' });
           if (!response.ok) {
             throw new Error(`Disconnect failed with HTTP ${response.status} ${response.statusText}`);
           }
@@ -546,6 +658,10 @@
       await beginGoogleDriveSignIn();
     });
 
+    digikeySettingsButton.addEventListener('click', async () => {
+      await openDigiKeySettingsDialog();
+    });
+
     drivePickerRefreshButton.addEventListener('click', async () => {
       await refreshDrivePickerList();
     });
@@ -557,13 +673,8 @@
       }
     });
 
-    drivePickerCloseButton.addEventListener('click', () => {
-      closeDrivePicker(null);
-    });
-
-    drivePickerCancelButton.addEventListener('click', () => {
-      closeDrivePicker(null);
-    });
+    drivePickerCloseButton.addEventListener('click', () => closeDrivePicker(null));
+    drivePickerCancelButton.addEventListener('click', () => closeDrivePicker(null));
 
     drivePickerDialog.addEventListener('cancel', (event) => {
       event.preventDefault();
@@ -576,14 +687,32 @@
       }
     });
 
-    copyButton.addEventListener('click', async () => {
-      if (!lastExportText) {
-        statusEl.textContent = 'Nothing to copy yet.';
-        return;
+    digikeySettingsCancelButton.addEventListener('click', () => {
+      closeDigiKeySettingsDialog();
+    });
+
+    digikeySettingsDialog.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      closeDigiKeySettingsDialog();
+    });
+
+    digikeySettingsForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      await saveDigiKeySettings();
+    });
+
+    localFileInput.addEventListener('change', async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const text = await file.text();
+      bomTextArea.value = text;
+      inputFilenameInput.value = file.name;
+      if (!outputFilenameInput.value.trim()) {
+        outputFilenameInput.value = buildOutputFilenameFromImportedFile(file.name);
       }
-      await navigator.clipboard.writeText(lastExportText);
-      syncFilenameInput('export-copy');
-      statusEl.textContent = 'Export text copied to clipboard.';
+      statusEl.textContent = `Loaded ${file.name}.`;
+      localFileInput.value = '';
     });
 
     form.addEventListener('submit', async (event) => {
@@ -591,70 +720,161 @@
       await startLookupAndExportFlow();
     });
 
-    async function startLookupAndExportFlow() {
-      runButton.disabled = true;
-      driveLink.hidden = true;
-      driveLink.removeAttribute('href');
-      summaryEl.textContent = 'Working...';
-      previewEl.textContent = 'Working...';
-      notesEl.textContent = 'Preparing Google Drive import...';
+    async function browseForInputFile() {
+      if (inputUseDrive.checked) {
+        if (!supportsLocalDriveAuth()) {
+          statusEl.textContent = 'Google Drive browse is only available from the local app preview.';
+          return;
+        }
 
-      try {
         await refreshDriveAuthStatus();
-
         if (!isGoogleDriveConnected) {
           const connected = await beginGoogleDriveSignIn();
           if (!connected) {
-            statusEl.textContent = 'Lookup canceled before Drive sign-in completed.';
-            summaryEl.textContent = 'Google Drive sign-in was canceled or did not complete.';
-            previewEl.textContent = '';
-            notesEl.textContent = 'The lookup flow now starts from a Google Drive file selection.';
+            statusEl.textContent = 'Input file selection canceled before Drive sign-in completed.';
             return;
           }
         }
 
-        statusEl.textContent = 'Choose a BOM file from Google Drive...';
-        const selectedFile = await openDrivePicker();
+        const selectedFile = await openDrivePicker('input');
         if (!selectedFile) {
-          statusEl.textContent = 'Lookup canceled before a Drive file was selected.';
-          summaryEl.textContent = 'No Drive file was selected.';
-          previewEl.textContent = '';
-          notesEl.textContent = 'Pick a Drive BOM file to continue the lookup and export flow.';
+          statusEl.textContent = 'No Drive input file was selected.';
           return;
         }
 
-        statusEl.textContent = `Importing ${selectedFile.name} from Google Drive...`;
         const imported = await importDriveFile(selectedFile.id);
         bomTextArea.value = imported.text || '';
-        filenameInput.value = buildOutputFilenameFromImportedFile(imported.name || selectedFile.name || 'Imported BOM');
+        inputFilenameInput.value = imported.name || selectedFile.name || '';
+        if (!outputFilenameInput.value.trim()) {
+          outputFilenameInput.value = buildOutputFilenameFromImportedFile(imported.name || selectedFile.name || 'Imported BOM');
+        }
+        statusEl.textContent = `Loaded ${inputFilenameInput.value || 'Drive file'} from Google Drive.`;
+        return;
+      }
 
-        const bomText = bomTextArea.value.trim();
-        const outputFilename = filenameInput.value.trim();
+      if (typeof window.showOpenFilePicker === 'function') {
+        try {
+          const [handle] = await window.showOpenFilePicker({
+            multiple: false,
+            types: [
+              {
+                description: 'BOM files',
+                accept: {
+                  'text/plain': ['.txt', '.bom'],
+                  'text/csv': ['.csv', '.tsv']
+                }
+              }
+            ]
+          });
+          if (!handle) return;
+          const file = await handle.getFile();
+          const text = await file.text();
+          bomTextArea.value = text;
+          inputFilenameInput.value = file.name;
+          if (!outputFilenameInput.value.trim()) {
+            outputFilenameInput.value = buildOutputFilenameFromImportedFile(file.name);
+          }
+          statusEl.textContent = `Loaded ${file.name}.`;
+          return;
+        } catch (error) {
+          if (error?.name !== 'AbortError') {
+            statusEl.textContent = `Could not open local file picker: ${error instanceof Error ? error.message : String(error)}`;
+          }
+          return;
+        }
+      }
 
-        if (!bomText) {
-          statusEl.textContent = 'The selected Drive file did not contain BOM text.';
-          bomTextArea.focus();
-          summaryEl.textContent = 'Import completed, but no BOM text was found.';
-          previewEl.textContent = '';
-          notesEl.textContent = 'Use a plain text, TSV, CSV, or Google Sheets file that contains the BOM table.';
+      localFileInput.click();
+    }
+
+    async function browseForOutputFilename() {
+      if (outputUseDrive.checked) {
+        if (!supportsLocalDriveAuth()) {
+          statusEl.textContent = 'Google Drive browse is only available from the local app preview.';
           return;
         }
 
-        statusEl.textContent = 'Looking up DigiKey stock and pricing...';
-        notesEl.textContent = `Imported from Google Drive file: ${imported.name || selectedFile.name}`;
+        await refreshDriveAuthStatus();
+        if (!isGoogleDriveConnected) {
+          const connected = await beginGoogleDriveSignIn();
+          if (!connected) {
+            statusEl.textContent = 'Output file selection canceled before Drive sign-in completed.';
+            return;
+          }
+        }
+
+        const selectedFile = await openDrivePicker('output');
+        if (!selectedFile) {
+          statusEl.textContent = 'No Drive output filename was selected.';
+          return;
+        }
+
+        outputFilenameInput.value = normalizeCsvFilename(selectedFile.name || getDefaultOutputFilename());
+        statusEl.textContent = `Output filename set from Google Drive: ${outputFilenameInput.value}.`;
+        return;
+      }
+
+      if (typeof window.showSaveFilePicker === 'function') {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: outputFilenameInput.value.trim() || getDefaultOutputFilename(),
+            types: [
+              {
+                description: 'CSV file',
+                accept: {
+                  'text/csv': ['.csv']
+                }
+              }
+            ]
+          });
+          if (handle?.name) {
+            outputFilenameInput.value = handle.name;
+            statusEl.textContent = `Output filename set to ${handle.name}.`;
+          }
+          return;
+        } catch (error) {
+          if (error?.name !== 'AbortError') {
+            statusEl.textContent = `Could not open output file picker: ${error instanceof Error ? error.message : String(error)}`;
+          }
+          return;
+        }
+      }
+
+      const proposed = window.prompt('Enter the output filename:', outputFilenameInput.value.trim() || getDefaultOutputFilename());
+      if (proposed && proposed.trim()) {
+        outputFilenameInput.value = normalizeCsvFilename(proposed.trim());
+        statusEl.textContent = `Output filename set to ${outputFilenameInput.value}.`;
+      }
+    }
+
+    async function startLookupAndExportFlow() {
+      const bomText = bomTextArea.value.trim();
+      const outputFilename = normalizeCsvFilename(outputFilenameInput.value.trim() || getDefaultOutputFilename());
+      outputFilenameInput.value = outputFilename;
+
+      if (!bomText) {
+        statusEl.textContent = 'Load or paste a tab-delimited BOM first.';
+        bomTextArea.focus();
+        return;
+      }
+
+      runButton.disabled = true;
+      statusEl.textContent = 'Looking up DigiKey stock and pricing...';
+      setProgressState({ active: true, completedRows: 0, totalRows: estimateBomRowCount(bomText), currentItem: '', currentManufacturerPartNumber: '' });
+      startProgressPolling();
+
+      try {
         const result = await callTool('bom.lookup_and_export', {
           bomText,
           outputFilename
         });
-        const structured = unwrapStructuredContent(result);
-        renderResult(structured, result);
+        renderResult(unwrapStructuredContent(result), result);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        statusEl.textContent = 'Lookup failed.';
-        summaryEl.textContent = message;
-        previewEl.textContent = '';
-        notesEl.textContent = 'If this is a live lookup, confirm DigiKey credentials, Google Drive access, and the selected file format.';
+        statusEl.textContent = `Lookup failed: ${message}`;
       } finally {
+        await refreshLookupProgress();
+        stopProgressPolling();
         runButton.disabled = false;
       }
     }
@@ -684,12 +904,8 @@
         };
 
         const messageHandler = async (event) => {
-          if (event.origin !== window.location.origin) {
-            return;
-          }
-          if (event.data?.type !== 'google-drive-auth-result') {
-            return;
-          }
+          if (event.origin !== window.location.origin) return;
+          if (event.data?.type !== 'google-drive-auth-result') return;
           window.removeEventListener('message', messageHandler);
           window.clearInterval(pollTimer);
           await finish(event.data.success, event.data.success ? 'Google Drive is connected.' : event.data.message || 'Google Drive sign-in failed.');
@@ -707,7 +923,13 @@
       });
     }
 
-    async function openDrivePicker() {
+    async function openDrivePicker(mode = 'input') {
+      drivePickerTitle.textContent = mode === 'output' ? 'Choose a Google Drive output filename' : 'Choose a Google Drive BOM file';
+      drivePickerCopy.textContent = mode === 'output'
+        ? 'Pick an existing Drive file if you want to reuse its filename for the export. You can still edit the output filename box afterward.'
+        : 'Pick a Drive file to import into the BOM box and update the input filename.';
+      drivePickerSearch.placeholder = mode === 'output' ? 'Search Drive files by output name...' : 'Search Drive files by name...';
+
       if (typeof drivePickerDialog.showModal === 'function') {
         drivePickerDialog.showModal();
       } else {
@@ -748,7 +970,6 @@
         if (!response.ok) {
           throw new Error(data?.error || `Drive list failed with HTTP ${response.status}`);
         }
-
         renderDrivePickerFiles(Array.isArray(data.files) ? data.files : []);
       } catch (error) {
         drivePickerList.innerHTML = `<div class="picker-empty">Could not load Google Drive files: ${escapeHtml(error instanceof Error ? error.message : String(error))}</div>`;
@@ -772,9 +993,7 @@
           <span class="picker-item-name">${escapeHtml(file.name || 'Unnamed file')}</span>
           <span class="picker-item-meta">${escapeHtml(formatDriveFileMeta(file))}</span>
         `;
-        button.addEventListener('click', () => {
-          closeDrivePicker(file);
-        });
+        button.addEventListener('click', () => closeDrivePicker(file));
         drivePickerList.appendChild(button);
       }
     }
@@ -788,84 +1007,117 @@
       return data;
     }
 
-    function buildOutputFilenameFromImportedFile(sourceName) {
-      const base = String(sourceName || 'Imported BOM')
-        .replace(/\.[^.]+$/, '')
-        .replace(/[\\/:*?"<>|]+/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-      return `${base || 'Digikey costed BOM'} ${getDateCode()}.csv`;
-    }
+    async function openDigiKeySettingsDialog() {
+      digikeySettingsButton.disabled = true;
+      digikeySettingsHint.textContent = 'Loading the current DigiKey settings...';
 
-    function formatDriveFileMeta(file) {
-      const parts = [];
-      if (file.mimeType) {
-        parts.push(file.mimeType);
-      }
-      if (file.modifiedTime) {
-        const date = new Date(file.modifiedTime);
-        if (!Number.isNaN(date.getTime())) {
-          parts.push(`Updated ${date.toLocaleString()}`);
+      try {
+        const response = await fetch('/auth/digikey/settings');
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data?.error || `Settings request failed with HTTP ${response.status}`);
         }
+
+        digikeyClientIdInput.value = data.clientId || '';
+        digikeyClientSecretInput.value = '';
+        digikeyCustomerIdInput.value = data.customerId || '0';
+        digikeyAccountIdInput.value = data.accountId || '';
+        digikeyApiBaseUrlInput.value = data.apiBaseUrl || 'https://api.digikey.com';
+        digikeyDemoModeInput.checked = Boolean(data.demoMode);
+        digikeySettingsHint.textContent = data.hasClientSecret
+          ? 'A client secret is already saved. Leave the secret field blank to keep the current one.'
+          : 'No client secret is saved yet. Enter one to enable live DigiKey token exchange.';
+
+        if (typeof digikeySettingsDialog.showModal === 'function') {
+          digikeySettingsDialog.showModal();
+        } else {
+          digikeySettingsDialog.setAttribute('open', 'open');
+        }
+      } catch (error) {
+        statusEl.textContent = `Could not open DigiKey settings: ${error instanceof Error ? error.message : String(error)}`;
+      } finally {
+        digikeySettingsButton.disabled = false;
       }
-      return parts.join(' • ') || 'Google Drive file';
     }
 
-    function escapeHtml(value) {
-      return String(value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+    function closeDigiKeySettingsDialog() {
+      if (typeof digikeySettingsDialog.close === 'function') {
+        digikeySettingsDialog.close();
+      } else {
+        digikeySettingsDialog.removeAttribute('open');
+      }
+    }
+
+    async function saveDigiKeySettings() {
+      digikeySettingsSaveButton.disabled = true;
+      digikeySettingsHint.textContent = 'Saving DigiKey credentials to .env...';
+
+      try {
+        const response = await fetch('/auth/digikey/settings', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify({
+            clientId: digikeyClientIdInput.value.trim(),
+            clientSecret: digikeyClientSecretInput.value,
+            customerId: digikeyCustomerIdInput.value.trim() || '0',
+            accountId: digikeyAccountIdInput.value.trim(),
+            apiBaseUrl: digikeyApiBaseUrlInput.value.trim() || 'https://api.digikey.com',
+            demoMode: digikeyDemoModeInput.checked
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data?.error || `Save failed with HTTP ${response.status}`);
+        }
+
+        statusEl.textContent = data.settings?.demoMode
+          ? 'DigiKey credentials saved. Demo mode is still enabled.'
+          : 'DigiKey credentials saved. Live DigiKey mode is ready.';
+        digikeySettingsHint.textContent = 'Saved to .env and refreshed in the running app.';
+        closeDigiKeySettingsDialog();
+      } catch (error) {
+        digikeySettingsHint.textContent = `Could not save DigiKey settings: ${error instanceof Error ? error.message : String(error)}`;
+      } finally {
+        digikeySettingsSaveButton.disabled = false;
+      }
     }
 
     function renderResult(structured, raw) {
-      const outputFilename = structured?.outputFilename || filenameInput.value.trim() || getDefaultOutputFilename();
-      filenameInput.value = outputFilename;
+      const outputFilename = structured?.outputFilename || outputFilenameInput.value.trim() || getDefaultOutputFilename();
+      outputFilenameInput.value = outputFilename;
       const rowCount = structured?.rowCount ?? structured?.rows?.length ?? 0;
       const driveUpload = structured?.driveUpload || {};
-      lastExportText = structured?.exportText || '';
-      summaryEl.textContent = [
-        `File: ${outputFilename}`,
-        `Rows processed: ${rowCount}`,
-        `Drive status: ${driveUpload.status || 'unknown'}`
-      ].join('\n');
-      previewEl.textContent = lastExportText || 'No export text returned.';
-      notesEl.textContent = structured?.rows?.map((row) => row.notes).filter(Boolean).join('\n') || 'No row-specific notes returned.';
 
-      if (driveUpload.status === 'uploaded' && driveUpload.file?.webViewLink) {
-        driveLink.href = driveUpload.file.webViewLink;
-        driveLink.textContent = `Open Google Drive file: ${driveUpload.file.name || outputFilename}`;
-        driveLink.hidden = false;
-        statusEl.textContent = 'Export uploaded to Google Drive.';
+      if (driveUpload.status === 'uploaded') {
+        statusEl.textContent = `Finished ${rowCount} rows. Uploaded ${driveUpload.file?.name || outputFilename} to Google Drive.`;
       } else if (driveUpload.status === 'not_configured') {
-        statusEl.textContent = 'Google Drive upload is not configured, so the CSV was prepared locally.';
+        statusEl.textContent = `Finished ${rowCount} rows. Google Drive upload is not configured.`;
       } else if (driveUpload.status === 'error') {
-        statusEl.textContent = 'Google Drive upload failed, but the export preview is still available.';
-        notesEl.textContent = [notesEl.textContent, driveUpload.error || 'Unknown upload error.'].filter(Boolean).join('\n');
+        statusEl.textContent = `Finished ${rowCount} rows. Google Drive upload failed.`;
       } else {
-        statusEl.textContent = 'Lookup complete.';
+        statusEl.textContent = `Finished ${rowCount} rows.`;
       }
 
       if (raw?.content?.[0]?.text) {
-        summaryEl.textContent += `\n\n${raw.content[0].text}`;
+        driveAuthHintEl.textContent = raw.content[0].text;
       }
+
+      setProgressState({
+        active: false,
+        completedRows: rowCount,
+        totalRows: rowCount,
+        currentItem: '',
+        currentManufacturerPartNumber: ''
+      });
     }
 
     function unwrapStructuredContent(result) {
-      if (!result) {
-        return null;
-      }
-      if (result.structuredContent) {
-        return result.structuredContent;
-      }
-      if (result.result?.structuredContent) {
-        return result.result.structuredContent;
-      }
-      if (result.result) {
-        return result.result;
-      }
+      if (!result) return null;
+      if (result.structuredContent) return result.structuredContent;
+      if (result.result?.structuredContent) return result.result.structuredContent;
+      if (result.result) return result.result;
       return result;
     }
 
@@ -883,9 +1135,8 @@
     }
 
     async function ensureLocalSession() {
-      if (sessionReady) {
-        return;
-      }
+      if (sessionReady) return;
+
       await rpc('initialize', {
         protocolVersion: '2025-03-26',
         capabilities: {},
@@ -894,6 +1145,7 @@
           version: '0.2.0'
         }
       });
+
       try {
         await rpc('notifications/initialized', {});
       } catch (error) {
@@ -902,6 +1154,7 @@
           throw error;
         }
       }
+
       sessionReady = true;
     }
 
@@ -944,6 +1197,8 @@
         if (data.connected) {
           googleAuthButton.textContent = 'Connected';
           driveAuthHintEl.textContent = 'Google Drive is connected through the browser sign-in flow. Click Connected to disconnect.';
+          inputUseDrive.checked = true;
+          outputUseDrive.checked = true;
         } else if (data.ready) {
           googleAuthButton.textContent = 'Sign in to Google Drive';
           driveAuthHintEl.textContent = 'Google Drive credentials are configured from the local environment. Use browser sign-in if you want a disconnectable local session.';
@@ -959,22 +1214,101 @@
       }
     }
 
-    function supportsLocalDriveAuth() {
-      return window.location.protocol === 'http:' || window.location.protocol === 'https:';
+    function estimateBomRowCount(bomText) {
+      const lines = String(bomText || '')
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      return Math.max(lines.length - 1, 0);
     }
 
-    if (!bomTextArea.value) {
-      bomTextArea.value = SAMPLE_BOM;
+    function setProgressState(progress) {
+      const total = Math.max(Number(progress?.totalRows) || 0, 0);
+      const completed = Math.min(Math.max(Number(progress?.completedRows) || 0, 0), total || Number(progress?.completedRows) || 0);
+      const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+      progressFill.style.width = `${percent}%`;
+      progressFill.parentElement.setAttribute('aria-valuenow', String(percent));
+      progressCount.textContent = `${completed} / ${total} (${percent}%)`;
+
+      if (progress?.active) {
+        const itemBits = [];
+        if (progress.currentItem) itemBits.push(`Item ${progress.currentItem}`);
+        if (progress.currentManufacturerPartNumber) itemBits.push(progress.currentManufacturerPartNumber);
+        progressMeta.textContent = itemBits.length ? `Working on ${itemBits.join(' - ')}` : 'Working on the BOM lookup...';
+      } else if (total > 0 && completed >= total) {
+        progressMeta.textContent = 'Processing complete.';
+      } else {
+        progressMeta.textContent = 'Waiting to start.';
+      }
     }
 
-    if (!filenameInput.value.trim()) {
-      syncFilenameInput('default');
+    function resetProgressDisplay() {
+      setProgressState({
+        active: false,
+        completedRows: 0,
+        totalRows: 0,
+        currentItem: '',
+        currentManufacturerPartNumber: ''
+      });
     }
 
-    statusEl.textContent = window.openai?.callTool
-      ? 'Connected to ChatGPT app tools. Paste a BOM and run the lookup.'
-      : 'Local preview mode is active. Paste a BOM and run the lookup.';
-    void refreshDriveAuthStatus();
+    function startProgressPolling() {
+      stopProgressPolling();
+      progressPollTimer = window.setInterval(() => {
+        void refreshLookupProgress();
+      }, 700);
+      void refreshLookupProgress();
+    }
+
+    function stopProgressPolling() {
+      if (progressPollTimer) {
+        window.clearInterval(progressPollTimer);
+        progressPollTimer = null;
+      }
+    }
+
+    async function refreshLookupProgress() {
+      try {
+        const response = await fetch('/lookup-progress');
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data?.error || `Progress request failed with HTTP ${response.status}`);
+        }
+        setProgressState(data);
+      } catch {
+      }
+    }
+
+    function buildOutputFilenameFromImportedFile(sourceName) {
+      const base = String(sourceName || 'Imported BOM')
+        .replace(/\.[^.]+$/, '')
+        .replace(/[\\/:*?"<>|]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      return `${base || 'Digikey costed BOM'} ${getDateCode()}.csv`;
+    }
+
+    function formatDriveFileMeta(file) {
+      const parts = [];
+      if (file.mimeType) parts.push(file.mimeType);
+      if (file.modifiedTime) {
+        const date = new Date(file.modifiedTime);
+        if (!Number.isNaN(date.getTime())) {
+          parts.push(`Updated ${date.toLocaleString()}`);
+        }
+      }
+      return parts.join(' - ') || 'Google Drive file';
+    }
+
+    function normalizeCsvFilename(value) {
+      const trimmed = String(value || '').trim();
+      if (!trimmed) return getDefaultOutputFilename();
+      return trimmed.toLowerCase().endsWith('.csv') ? trimmed : `${trimmed}.csv`;
+    }
+
+    function getDefaultOutputFilename() {
+      return `Digikey costed BOM ${getDateCode()}.csv`;
+    }
 
     function getDateCode(date = new Date()) {
       const parts = new Intl.DateTimeFormat('en-CA', {
@@ -986,23 +1320,25 @@
       return `${values.year}-${values.month}-${values.day}`;
     }
 
-    function getDefaultOutputFilename() {
-      return `Digikey costed BOM ${getDateCode()}.csv`;
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     }
 
-    function syncFilenameInput(reason) {
-      if (reason === 'sample') {
-        filenameInput.value = `Digikey costed BOM sample ${getDateCode()}.csv`;
-        return;
-      }
-
-      if (reason === 'export-copy') {
-        filenameInput.value = `Digikey costed BOM export ${getDateCode()}.csv`;
-        return;
-      }
-
-      filenameInput.value = getDefaultOutputFilename();
+    function supportsLocalDriveAuth() {
+      return window.location.protocol === 'http:' || window.location.protocol === 'https:';
     }
+
+    if (!outputFilenameInput.value.trim()) {
+      outputFilenameInput.value = getDefaultOutputFilename();
+    }
+
+    resetProgressDisplay();
+    void refreshDriveAuthStatus();
   </script>
 </body>
 </html>

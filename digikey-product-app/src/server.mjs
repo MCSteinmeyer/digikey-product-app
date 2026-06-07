@@ -8,12 +8,14 @@ import * as z from 'zod/v4';
 
 const WIDGET_URI = 'ui://bom-quote-widget/v1/index.html';
 const WIDGET_HTML = readFileSync(new URL('./widget.html', import.meta.url), 'utf8');
+const ENV_URL = new URL('../.env', import.meta.url);
 const GOOGLE_DRIVE_SESSION_URL = new URL('../.google-drive-session.json', import.meta.url);
 const DEBUG_LOG_URL = new URL('../debug.log', import.meta.url);
 const GOOGLE_DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive';
 let digikeyRequestChain = Promise.resolve();
 let digikeyTokenCache = null;
 const googleDriveAuthStates = new Map();
+let lookupProgressState = createLookupProgressState();
 
 loadDotEnv();
 
@@ -85,41 +87,68 @@ server.registerTool(
     resetDebugLog();
     const rows = parseBomText(bomText);
     const preparedRows = [];
-
-    for (const row of rows) {
-      const result = await lookupBomRow(row, lookupLimit);
-      preparedRows.push(result);
-    }
-
-    const exportText = buildExportCsv(preparedRows);
-    const normalizedFilename = normalizeOutputFilename(outputFilename);
-    const driveUpload = await uploadToGoogleDriveIfConfigured(normalizedFilename, exportText);
-
-    const summaryLines = [
-      `Processed ${preparedRows.length} BOM rows.`,
-      driveUpload.status === 'uploaded'
-        ? `Uploaded to Google Drive as ${driveUpload.file?.name ?? normalizedFilename}.`
-        : driveUpload.status === 'not_configured'
-          ? 'Google Drive upload is not configured, so the export was prepared locally.'
-          : `Google Drive upload failed: ${driveUpload.error ?? 'unknown error'}.`
-    ];
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: summaryLines.join('\n')
-        }
-      ],
-      structuredContent: {
-        kind: 'bom_quote_export',
-        outputFilename: normalizedFilename,
-        rowCount: preparedRows.length,
-        rows: preparedRows,
-        exportText,
-        driveUpload
-      }
+    lookupProgressState = {
+      active: true,
+      totalRows: rows.length,
+      completedRows: 0,
+      currentItem: rows[0]?.item ?? '',
+      currentManufacturerPartNumber: rows[0]?.manufacturerPartNumber ?? '',
+      startedAt: new Date().toISOString(),
+      finishedAt: null
     };
+
+    try {
+      for (const row of rows) {
+        lookupProgressState.currentItem = row.item ?? '';
+        lookupProgressState.currentManufacturerPartNumber = row.manufacturerPartNumber ?? '';
+        const result = await lookupBomRow(row, lookupLimit);
+        preparedRows.push(result);
+        lookupProgressState.completedRows = preparedRows.length;
+      }
+
+      const exportText = buildExportCsv(preparedRows);
+      const normalizedFilename = normalizeOutputFilename(outputFilename);
+      const driveUpload = await uploadToGoogleDriveIfConfigured(normalizedFilename, exportText);
+      lookupProgressState = {
+        ...lookupProgressState,
+        active: false,
+        completedRows: preparedRows.length,
+        finishedAt: new Date().toISOString()
+      };
+
+      const summaryLines = [
+        `Processed ${preparedRows.length} BOM rows.`,
+        driveUpload.status === 'uploaded'
+          ? `Uploaded to Google Drive as ${driveUpload.file?.name ?? normalizedFilename}.`
+          : driveUpload.status === 'not_configured'
+            ? 'Google Drive upload is not configured, so the export was prepared locally.'
+            : `Google Drive upload failed: ${driveUpload.error ?? 'unknown error'}.`
+      ];
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: summaryLines.join('\n')
+          }
+        ],
+        structuredContent: {
+          kind: 'bom_quote_export',
+          outputFilename: normalizedFilename,
+          rowCount: preparedRows.length,
+          rows: preparedRows,
+          exportText,
+          driveUpload
+        }
+      };
+    } catch (error) {
+      lookupProgressState = {
+        ...lookupProgressState,
+        active: false,
+        finishedAt: new Date().toISOString()
+      };
+      throw error;
+    }
   }
 );
 
@@ -321,17 +350,25 @@ async function lookupBomRow(row, lookupLimit) {
     : {};
   const selectedPricingRows = extractPricingRows(selected);
   const remotePricingRows = extractPricingRows(pricing);
+  const productStatusInfo = extractProductStatusInfo(selected, details);
   const pricingRows = remotePricingRows.length ? remotePricingRows : selectedPricingRows;
-  const selectedTier = exactManufacturerPartMatch
-    ? pickBreakQuantityOneTier(selectedPricingRows) || pickPricingTier(pricingRows, row.qty)
-    : pickPricingTier(pricingRows, row.qty);
+  const pricingSelection = resolvePricingSelection({
+    exactManufacturerPartMatch,
+    selected,
+    details,
+    pricing,
+    selectedPricingRows,
+    remotePricingRows,
+    qty: row.qty,
+    productStatusInfo
+  });
+  const selectedTier = pricingSelection.selectedTier;
   const stock = extractStock(selectedTier, selected, details, searchResponse, pricing);
   const quantityAvailable = extractQuantityAvailable(selectedTier, selected, details, pricing);
-  const productStatusInfo = extractProductStatusInfo(selected, details);
-  const unitPrice = firstValue(selectedTier, ['unitPrice', 'UnitPrice', 'price', 'Price']);
-  const currency = firstText(selectedTier, ['currency', 'Currency']) || firstText(details, ['currency', 'Currency']) || '';
+  const unitPrice = pricingSelection.unitPrice;
+  const currency = pricingSelection.currency;
   const extendedPrice = isFiniteNumber(unitPrice) && Number.isFinite(row.qty) ? Number(unitPrice) * row.qty : '';
-  const notes = buildLookupNotes(row, selected, details, pricingRows, stock, unitPrice);
+  const notes = buildLookupNotes(row, selected, details, pricingRows, stock, unitPrice, productStatusInfo);
   const lookupStatus = matchedPartNumber || exactManufacturerPartMatch ? 'matched' : 'not_found';
 
   appendDebugLog({
@@ -354,8 +391,7 @@ async function lookupBomRow(row, lookupLimit) {
     matchedManufacturerPartNumber,
     stock,
     quantityAvailable,
-    productStatusId: productStatusInfo.id,
-    productStatus: productStatusInfo.status,
+      productStatus: productStatusInfo.status,
     unitPrice: unitPrice ?? '',
     extendedPrice,
     currency,
@@ -837,7 +873,6 @@ function buildExportCsv(rows) {
     'Matched Manufacturer Part Number',
     'Stock',
     'Quantity Available',
-    'Product Status Id',
     'Product Status',
     'Unit Price',
     'Extended Price',
@@ -862,7 +897,6 @@ function buildExportCsv(rows) {
         row.matchedManufacturerPartNumber,
         row.stock,
         row.quantityAvailable,
-        row.productStatusId,
         row.productStatus,
         row.unitPrice,
         row.extendedPrice,
@@ -907,34 +941,49 @@ function chooseBestCandidate(candidates, row) {
   if (!target) {
     return candidates[0] || {};
   }
+  let bestCandidate = candidates[0] || {};
+  let bestScore = Number.NEGATIVE_INFINITY;
 
-  const exact = candidates.find((candidate) => {
-    const candidateValues = [
-      firstText(candidate, ['manufacturerProductNumber', 'ManufacturerProductNumber', 'manufacturerPartNumber', 'ManufacturerPartNumber']),
-      firstText(candidate, ['productNumber', 'ProductNumber', 'digiKeyPartNumber', 'DigiKeyPartNumber'])
+  for (const candidate of candidates) {
+    const manufacturerPartNumber =
+      firstText(candidate, ['manufacturerProductNumber', 'ManufacturerProductNumber', 'manufacturerPartNumber', 'ManufacturerPartNumber'])
+        ?.trim()
+        .toLowerCase() || '';
+    const digiKeyPartNumber =
+      firstText(candidate, ['productNumber', 'ProductNumber', 'digiKeyPartNumber', 'DigiKeyPartNumber'])?.trim().toLowerCase() || '';
+    const haystack = [
+      manufacturerPartNumber,
+      digiKeyPartNumber,
+      extractDigiKeyDescription(candidate)?.toLowerCase() || '',
+      extractDigiKeyManufacturerName(candidate)?.toLowerCase() || ''
     ]
       .filter(Boolean)
-      .map((value) => value.trim().toLowerCase());
-    return candidateValues.includes(target);
-  });
+      .join(' ');
 
-  if (exact) {
-    return exact;
+    let score = 0;
+    if (manufacturerPartNumber === target) score += 1000;
+    if (digiKeyPartNumber === target) score += 900;
+    if (manufacturerPartNumber.includes(target)) score += 120;
+    if (haystack.includes(target)) score += 40;
+
+    const breakOneTier = pickBreakQuantityOneTier(extractPricingRows(candidate));
+    const breakOneUnitPrice = Number(firstValue(breakOneTier, ['unitPrice', 'UnitPrice', 'price', 'Price']));
+    if (Number.isFinite(breakOneUnitPrice) && breakOneUnitPrice > 0) {
+      score += 25;
+    }
+
+    const quantityAvailable = Number(extractQuantityAvailable(candidate));
+    if (Number.isFinite(quantityAvailable) && quantityAvailable > 0) {
+      score += 10;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestCandidate = candidate;
+    }
   }
 
-  const fuzzy = candidates.find((candidate) => {
-    const haystack = [
-      firstText(candidate, ['manufacturerProductNumber', 'ManufacturerProductNumber', 'manufacturerPartNumber', 'ManufacturerPartNumber']),
-      firstText(candidate, ['description', 'Description', 'productDescription']),
-      firstText(candidate, ['manufacturerName', 'ManufacturerName', 'manufacturer'])
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
-    return haystack.includes(target);
-  });
-
-  return fuzzy || candidates[0] || {};
+  return bestCandidate;
 }
 
 function pickPricingTier(pricingRows, qty) {
@@ -980,6 +1029,64 @@ function pickBreakQuantityOneTier(pricingRows) {
   });
 
   return exact || {};
+}
+
+function resolvePricingSelection({
+  exactManufacturerPartMatch,
+  selected,
+  details,
+  pricing,
+  selectedPricingRows,
+  remotePricingRows,
+  qty,
+  productStatusInfo
+}) {
+  const pricingRows = remotePricingRows.length ? remotePricingRows : selectedPricingRows;
+  const candidates = [];
+
+  if (exactManufacturerPartMatch) {
+    candidates.push(pickBreakQuantityOneTier(selectedPricingRows));
+    candidates.push(pickBreakQuantityOneTier(remotePricingRows));
+  }
+
+  candidates.push(pickPricingTier(pricingRows, qty));
+  candidates.push(pickPricingTier(selectedPricingRows, qty));
+  candidates.push(pickPricingTier(remotePricingRows, qty));
+
+  const isActiveProduct = String(productStatusInfo?.status || '').trim().toLowerCase() === 'active';
+  if (isActiveProduct) {
+    candidates.push(selected);
+    candidates.push(details);
+    candidates.push(pricing);
+  }
+
+  candidates.push(selected);
+  candidates.push(details);
+  candidates.push(pricing);
+
+  for (const candidate of candidates) {
+    const unitPrice = firstValue(candidate, ['unitPrice', 'UnitPrice', 'price', 'Price']);
+    if (isFiniteNumber(unitPrice) && Number(unitPrice) > 0) {
+      return {
+        selectedTier: candidate && typeof candidate === 'object' ? candidate : {},
+        unitPrice,
+        currency:
+          firstText(candidate, ['currency', 'Currency']) ||
+          firstText(details, ['currency', 'Currency']) ||
+          firstText(selected, ['currency', 'Currency']) ||
+          ''
+      };
+    }
+  }
+
+  return {
+    selectedTier: candidates.find((candidate) => candidate && typeof candidate === 'object' && Object.keys(candidate).length > 0) || {},
+    unitPrice: '',
+    currency:
+      firstText(details, ['currency', 'Currency']) ||
+      firstText(selected, ['currency', 'Currency']) ||
+      ''
+  };
 }
 
 function extractStock(...objects) {
@@ -1028,7 +1135,7 @@ function extractProductStatusInfo(...objects) {
   };
 }
 
-function buildLookupNotes(row, selected, details, pricingRows, stock, unitPrice) {
+function buildLookupNotes(row, selected, details, pricingRows, stock, unitPrice, productStatusInfo) {
   const notes = [];
 
   if (!row.manufacturerPartNumber) {
@@ -1043,8 +1150,17 @@ function buildLookupNotes(row, selected, details, pricingRows, stock, unitPrice)
     notes.push('No pricing rows returned.');
   }
 
+  const statusText = String(productStatusInfo?.status || '').trim();
+  const isActiveProduct = statusText.toLowerCase() === 'active';
+
   if (!isFiniteNumber(unitPrice)) {
-    notes.push('No unit price parsed from the pricing response.');
+    if (isActiveProduct) {
+      notes.push('No unit price was found after checking the available pricing fields for this active product.');
+    } else if (statusText) {
+      notes.push(`No unit price was found. Product status is ${statusText}, which may explain the missing price.`);
+    } else {
+      notes.push('No unit price parsed from the pricing response.');
+    }
   }
 
   if (stock === '') {
@@ -1061,6 +1177,8 @@ function buildLookupNotes(row, selected, details, pricingRows, stock, unitPrice)
 
 function extractProductItems(data) {
   const arrays = [
+    data?.exactMatches,
+    data?.ExactMatches,
     data?.products,
     data?.Products,
     data?.results,
@@ -1071,16 +1189,46 @@ function extractProductItems(data) {
     Array.isArray(data) ? data : null
   ].filter(Array.isArray);
 
-  if (arrays.length > 0) {
-    return arrays[0];
-  }
-
   if (data && typeof data === 'object') {
-    const nested = Object.values(data).find(Array.isArray);
-    if (nested) return nested;
+    for (const value of Object.values(data)) {
+      if (Array.isArray(value) && !arrays.includes(value)) {
+        arrays.push(value);
+      }
+    }
   }
 
-  return [];
+  if (arrays.length === 0) {
+    return [];
+  }
+
+  const seen = new Set();
+  const combined = [];
+
+  for (const array of arrays) {
+    for (const candidate of array) {
+      if (!candidate || typeof candidate !== 'object') {
+        continue;
+      }
+
+      const dedupeKey =
+        [
+          firstText(candidate, ['manufacturerProductNumber', 'ManufacturerProductNumber', 'manufacturerPartNumber', 'ManufacturerPartNumber']),
+          extractDigiKeyProductNumber(candidate),
+          firstText(candidate, ['productUrl', 'ProductUrl', 'url'])
+        ]
+          .filter(Boolean)
+          .join('||') || JSON.stringify(candidate);
+
+      if (seen.has(dedupeKey)) {
+        continue;
+      }
+
+      seen.add(dedupeKey);
+      combined.push(candidate);
+    }
+  }
+
+  return combined;
 }
 
 function extractPricingRows(data) {
@@ -1340,6 +1488,18 @@ function splitTabDelimitedLine(line) {
     .map((cell) => cell.trim());
 }
 
+function createLookupProgressState() {
+  return {
+    active: false,
+    totalRows: 0,
+    completedRows: 0,
+    currentItem: '',
+    currentManufacturerPartNumber: '',
+    startedAt: null,
+    finishedAt: null
+  };
+}
+
 function normalizeBomHeader(header) {
   const normalized = String(header).trim().toLowerCase().replace(/\s+/g, ' ');
 
@@ -1376,10 +1536,64 @@ function readEnv(name, fallback = '') {
   return process.env[name] ?? fallback;
 }
 
+function getDigiKeySettings() {
+  return {
+    clientId: readEnv('DIGIKEY_CLIENT_ID', '').trim(),
+    customerId: readEnv('DIGIKEY_CUSTOMER_ID', '0').trim() || '0',
+    accountId: readEnv('DIGIKEY_ACCOUNT_ID', '').trim(),
+    apiBaseUrl: readEnv('DIGIKEY_API_BASE_URL', 'https://api.digikey.com').trim(),
+    demoMode: isDemoMode(),
+    hasClientSecret: Boolean(readEnv('DIGIKEY_CLIENT_SECRET', '').trim())
+  };
+}
+
+function updateEnvFile(updates) {
+  let text = '';
+  try {
+    text = readFileSync(ENV_URL, 'utf8');
+  } catch {
+    text = '';
+  }
+
+  const lines = text ? text.split(/\r?\n/) : [];
+  const pending = new Map(Object.entries(updates));
+  const nextLines = [];
+
+  for (const line of lines) {
+    const eqIndex = line.indexOf('=');
+    if (eqIndex <= 0) {
+      nextLines.push(line);
+      continue;
+    }
+
+    const key = line.slice(0, eqIndex).trim();
+    if (!pending.has(key)) {
+      nextLines.push(line);
+      continue;
+    }
+
+    nextLines.push(`${key}=${pending.get(key) ?? ''}`);
+    pending.delete(key);
+  }
+
+  for (const [key, value] of pending.entries()) {
+    nextLines.push(`${key}=${value ?? ''}`);
+  }
+
+  const normalizedText = `${nextLines.join('\n').replace(/\n*$/, '')}\n`;
+  writeFileSync(ENV_URL, normalizedText, 'utf8');
+
+  for (const [key, value] of Object.entries(updates)) {
+    process.env[key] = value ?? '';
+  }
+
+  clearDigiKeyAccessTokenCache();
+}
+
 function loadDotEnv() {
   let text = '';
   try {
-    text = readFileSync(new URL('../.env', import.meta.url), 'utf8');
+    text = readFileSync(ENV_URL, 'utf8');
   } catch {
     return;
   }
@@ -1679,6 +1893,62 @@ async function main() {
       res.statusCode = 200;
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify(getGoogleDriveStatus()));
+      return;
+    }
+
+    if (requestUrl.pathname === '/lookup-progress') {
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify(lookupProgressState));
+      return;
+    }
+
+    if (requestUrl.pathname === '/auth/digikey/settings' && req.method === 'GET') {
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify(getDigiKeySettings()));
+      return;
+    }
+
+    if (requestUrl.pathname === '/auth/digikey/settings' && req.method === 'POST') {
+      let bodyText = '';
+      req.setEncoding('utf8');
+      req.on('data', (chunk) => {
+        bodyText += chunk;
+      });
+      req.on('end', () => {
+        try {
+          const parsed = bodyText ? JSON.parse(bodyText) : {};
+          const clientId = String(parsed.clientId ?? '').trim();
+          const customerId = String(parsed.customerId ?? '0').trim() || '0';
+          const accountId = String(parsed.accountId ?? '').trim();
+          const apiBaseUrl = String(parsed.apiBaseUrl ?? 'https://api.digikey.com').trim() || 'https://api.digikey.com';
+          const demoMode = Boolean(parsed.demoMode);
+          const updates = {
+            DIGIKEY_CLIENT_ID: clientId,
+            DIGIKEY_CUSTOMER_ID: customerId,
+            DIGIKEY_ACCOUNT_ID: accountId,
+            DIGIKEY_API_BASE_URL: apiBaseUrl,
+            MCP_ALLOW_DEMO: demoMode ? 'true' : 'false'
+          };
+
+          if (Object.prototype.hasOwnProperty.call(parsed, 'clientSecret')) {
+            const clientSecret = String(parsed.clientSecret ?? '');
+            if (clientSecret.trim()) {
+              updates.DIGIKEY_CLIENT_SECRET = clientSecret.trim();
+            }
+          }
+
+          updateEnvFile(updates);
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ ok: true, settings: getDigiKeySettings() }));
+        } catch (error) {
+          res.statusCode = 400;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }));
+        }
+      });
       return;
     }
 
