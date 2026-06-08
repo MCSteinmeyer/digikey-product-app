@@ -84,6 +84,8 @@ server.registerTool(
     }
   },
   async ({ bomText, outputFilename, lookupLimit }) => {
+    // This is the main end-to-end workflow: parse the BOM, look up each row,
+    // build the CSV, then optionally upload the result to Google Drive.
     resetDebugLog();
     const rows = parseBomText(bomText);
     const preparedRows = [];
@@ -309,7 +311,10 @@ server.registerTool(
   }
 );
 
+// Looks up one BOM row in DigiKey and returns the normalized export-ready result.
 async function lookupBomRow(row, lookupLimit) {
+  // Each BOM row goes through keyword search first, then details/pricing calls
+  // for the best candidate selected from the DigiKey response.
   const lookupQuery = String(row.manufacturerPartNumber || '').trim();
   const searchRequestBody = {
     Keywords: lookupQuery,
@@ -403,6 +408,7 @@ async function lookupBomRow(row, lookupLimit) {
   };
 }
 
+// Serializes debug data into readable JSON text for logs and diagnostics.
 function stringifyDebugPayload(payload) {
   try {
     return JSON.stringify(payload ?? null, null, 2);
@@ -411,6 +417,7 @@ function stringifyDebugPayload(payload) {
   }
 }
 
+// Appends one BOM row's DigiKey request/response trace to the debug log.
 function appendDebugLog({ item, manufacturerPartNumber, lookupStatus, query, responseText }) {
   const lines = [
     `=== ${new Date().toISOString()} ===`,
@@ -426,10 +433,12 @@ function appendDebugLog({ item, manufacturerPartNumber, lookupStatus, query, res
   appendFileSync(DEBUG_LOG_URL, `${lines.join('\n')}\n`, 'utf8');
 }
 
+// Clears the debug log at the start of each new BOM processing run.
 function resetDebugLog() {
   writeFileSync(DEBUG_LOG_URL, '', 'utf8');
 }
 
+// Uploads the finished CSV to Google Drive when usable Drive credentials are available.
 async function uploadToGoogleDriveIfConfigured(filename, content) {
   const token = await getGoogleDriveAccessToken();
   const folderId = readEnv('GOOGLE_DRIVE_FOLDER_ID', '').trim();
@@ -502,6 +511,7 @@ async function uploadToGoogleDriveIfConfigured(filename, content) {
   };
 }
 
+// Resolves a Google Drive access token from session, refresh token, or direct env configuration.
 async function getGoogleDriveAccessToken() {
   const session = readGoogleDriveSession();
   const directToken = readEnv('GOOGLE_DRIVE_ACCESS_TOKEN', '').trim();
@@ -546,6 +556,7 @@ async function getGoogleDriveAccessToken() {
   return '';
 }
 
+// Lists Google Drive files that are suitable for importing BOM content into the app.
 async function listGoogleDriveImportFiles(searchQuery = '') {
   const token = await getGoogleDriveAccessToken();
   if (!token) {
@@ -569,6 +580,7 @@ async function listGoogleDriveImportFiles(searchQuery = '') {
   return Array.isArray(parsed?.files) ? parsed.files : [];
 }
 
+// Downloads the contents of one selected Google Drive file for BOM import.
 async function readGoogleDriveImportFile(fileId) {
   const token = await getGoogleDriveAccessToken();
   if (!token) {
@@ -617,6 +629,7 @@ async function readGoogleDriveImportFile(fileId) {
   };
 }
 
+// Fetches a Google Drive JSON endpoint and normalizes error handling around the response.
 async function fetchGoogleDriveJson(url, token) {
   let response;
   try {
@@ -640,6 +653,7 @@ async function fetchGoogleDriveJson(url, token) {
   return { response, parsed, text };
 }
 
+// Builds the Drive file search query used by the import picker.
 function buildGoogleDriveImportQuery(searchQuery = '') {
   const clauses = [
     'trashed = false',
@@ -660,10 +674,12 @@ function buildGoogleDriveImportQuery(searchQuery = '') {
   return clauses.join(' and ');
 }
 
+// Escapes a user search string so it is safe to embed in a Drive query expression.
 function escapeGoogleDriveQueryValue(value) {
   return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
+// Returns whether a Drive MIME type is one the BOM importer knows how to read.
 function isImportableDriveMimeType(mimeType) {
   return [
     'text/plain',
@@ -672,6 +688,7 @@ function isImportableDriveMimeType(mimeType) {
   ].includes(String(mimeType || '').trim());
 }
 
+// Exchanges a Google refresh token for a fresh access token and optionally persists the result.
 async function refreshGoogleDriveAccessToken({ clientId, clientSecret, refreshToken, persistSession, priorSession = null }) {
   const body = new URLSearchParams({
     client_id: clientId,
@@ -724,6 +741,7 @@ async function refreshGoogleDriveAccessToken({ clientId, clientSecret, refreshTo
   return accessToken;
 }
 
+// Reads the locally stored Google Drive browser session file if one exists.
 function readGoogleDriveSession() {
   try {
     const text = readFileSync(GOOGLE_DRIVE_SESSION_URL, 'utf8');
@@ -734,16 +752,19 @@ function readGoogleDriveSession() {
   }
 }
 
+// Saves the current Google Drive browser session metadata to disk.
 function writeGoogleDriveSession(session) {
   writeFileSync(GOOGLE_DRIVE_SESSION_URL, `${JSON.stringify(session, null, 2)}\n`, 'utf8');
 }
 
+// Removes the locally stored Google Drive browser session.
 function clearGoogleDriveSession() {
   if (existsSync(GOOGLE_DRIVE_SESSION_URL)) {
     rmSync(GOOGLE_DRIVE_SESSION_URL);
   }
 }
 
+// Reports the current Google Drive auth state used by the preview UI.
 function getGoogleDriveStatus() {
   const session = readGoogleDriveSession();
   const envRefreshToken = readEnv('GOOGLE_REFRESH_TOKEN', '').trim();
@@ -761,6 +782,7 @@ function getGoogleDriveStatus() {
   };
 }
 
+// Chooses the callback base URL for the local Google OAuth browser flow.
 function buildGoogleDriveRedirectBase(req, port) {
   const configuredBase = readEnv('GOOGLE_OAUTH_REDIRECT_BASE_URL', '').trim();
   if (configuredBase) {
@@ -775,6 +797,7 @@ function buildGoogleDriveRedirectBase(req, port) {
   return `http://127.0.0.1:${port}`;
 }
 
+// Renders the small browser page shown after Google OAuth success or failure.
 function renderGoogleAuthResultPage({ success, message }) {
   const safeMessage = JSON.stringify(message);
   const closeDelayMs = success ? 10000 : 1200;
@@ -823,6 +846,7 @@ function renderGoogleAuthResultPage({ success, message }) {
 </html>`;
 }
 
+// Parses pasted tab-delimited BOM text into normalized row objects.
 function parseBomText(bomText) {
   const lines = String(bomText)
     .replace(/\r\n/g, '\n')
@@ -860,6 +884,7 @@ function parseBomText(bomText) {
   return rows.filter((row) => row.manufacturerPartNumber || row.description || row.manufacturer);
 }
 
+// Converts normalized BOM lookup rows into the final CSV export text.
 function buildExportCsv(rows) {
   const headers = [
     'Item',
@@ -912,6 +937,7 @@ function buildExportCsv(rows) {
   return lines.join('\r\n');
 }
 
+// Normalizes a requested export filename and ensures the output uses a .csv extension.
 function normalizeOutputFilename(filename) {
   const trimmed = String(filename || '').trim();
   if (!trimmed) {
@@ -921,6 +947,7 @@ function normalizeOutputFilename(filename) {
   return `${base}.csv`;
 }
 
+// Returns the YYYY-MM-DD date code used in default output filenames.
 function getDateCode(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', {
     year: 'numeric',
@@ -932,6 +959,7 @@ function getDateCode(date = new Date()) {
   return `${values.year}-${values.month}-${values.day}`;
 }
 
+// Scores the full DigiKey candidate set and returns the best match for one BOM row.
 function chooseBestCandidate(candidates, row) {
   if (!Array.isArray(candidates) || candidates.length === 0) {
     return {};
@@ -986,6 +1014,7 @@ function chooseBestCandidate(candidates, row) {
   return bestCandidate;
 }
 
+// Picks the most appropriate pricing tier for a requested BOM quantity.
 function pickPricingTier(pricingRows, qty) {
   if (!Array.isArray(pricingRows) || pricingRows.length === 0) {
     return {};
@@ -1018,6 +1047,7 @@ function pickPricingTier(pricingRows, qty) {
   return chosen.row;
 }
 
+// Returns the pricing row whose break quantity is exactly one, when present.
 function pickBreakQuantityOneTier(pricingRows) {
   if (!Array.isArray(pricingRows) || pricingRows.length === 0) {
     return {};
@@ -1031,6 +1061,7 @@ function pickBreakQuantityOneTier(pricingRows) {
   return exact || {};
 }
 
+// Resolves the best available pricing source for a matched DigiKey product.
 function resolvePricingSelection({
   exactManufacturerPartMatch,
   selected,
@@ -1041,6 +1072,8 @@ function resolvePricingSelection({
   qty,
   productStatusInfo
 }) {
+  // Active products get a broader best-effort pricing pass before we conclude
+  // that DigiKey did not return a usable unit price.
   const pricingRows = remotePricingRows.length ? remotePricingRows : selectedPricingRows;
   const candidates = [];
 
@@ -1089,6 +1122,7 @@ function resolvePricingSelection({
   };
 }
 
+// Extracts the first usable stock or availability quantity from the provided objects.
 function extractStock(...objects) {
   const keys = [
     'quantityAvailable',
@@ -1113,11 +1147,13 @@ function extractStock(...objects) {
   return '';
 }
 
+// Extracts the quantity-available view used in the CSV output.
 function extractQuantityAvailable(...objects) {
   const value = extractStock(...objects);
   return value === '' ? '' : value;
 }
 
+// Extracts the product lifecycle status object returned by DigiKey.
 function extractProductStatusInfo(...objects) {
   for (const object of objects) {
     const statusObject = firstValue(object, ['productStatus', 'ProductStatus']);
@@ -1135,6 +1171,7 @@ function extractProductStatusInfo(...objects) {
   };
 }
 
+// Builds the human-readable notes string for one BOM lookup result.
 function buildLookupNotes(row, selected, details, pricingRows, stock, unitPrice, productStatusInfo) {
   const notes = [];
 
@@ -1175,7 +1212,10 @@ function buildLookupNotes(row, selected, details, pricingRows, stock, unitPrice,
   return notes.join(' ');
 }
 
+// Merges the relevant DigiKey product arrays into one deduplicated candidate list.
 function extractProductItems(data) {
+  // DigiKey can split good matches across multiple arrays like ExactMatches and
+  // Products, so we merge the candidate lists before choosing a winner.
   const arrays = [
     data?.exactMatches,
     data?.ExactMatches,
@@ -1231,6 +1271,7 @@ function extractProductItems(data) {
   return combined;
 }
 
+// Extracts normalized pricing rows from direct pricing replies or product variations.
 function extractPricingRows(data) {
   const arrays = [
     data?.pricing,
@@ -1281,6 +1322,7 @@ function extractPricingRows(data) {
   return [];
 }
 
+// Picks the most useful single object view from a DigiKey response payload.
 function extractBestObject(data) {
   if (Array.isArray(data)) {
     return data[0] ?? {};
@@ -1307,6 +1349,7 @@ function extractBestObject(data) {
   return {};
 }
 
+// Formats one DigiKey product into the lightweight summary shape returned to the UI.
 function formatProductSummary(product) {
   return {
     productNumber: extractDigiKeyProductNumber(product),
@@ -1323,6 +1366,7 @@ function formatProductSummary(product) {
   };
 }
 
+// Builds the text summary returned by the keyword-search tool.
 function renderSummary(label, query, items, raw) {
   const lines = [`${label}: ${query}`, `Results: ${items.length}`];
 
@@ -1343,6 +1387,7 @@ function renderSummary(label, query, items, raw) {
   return lines.join('\n');
 }
 
+// Builds the text summary returned by the product-details tool.
 function renderDetails(label, productNumber, details, raw) {
   const lines = [
     `${label}: ${productNumber}`,
@@ -1358,6 +1403,7 @@ function renderDetails(label, productNumber, details, raw) {
   return lines.join('\n');
 }
 
+// Builds the text summary returned by the product-pricing tool.
 function renderPricing(label, productNumber, pricing, raw) {
   const lines = [`${label}: ${productNumber}`, `Pricing rows: ${pricing.length}`];
 
@@ -1378,6 +1424,7 @@ function renderPricing(label, productNumber, pricing, raw) {
   return lines.join('\n');
 }
 
+// Returns the first non-empty string value from a list of possible keys.
 function firstText(object, keys) {
   const value = firstValue(object, keys);
   if (typeof value === 'string') {
@@ -1389,6 +1436,7 @@ function firstText(object, keys) {
   return value == null ? undefined : String(value);
 }
 
+// Returns the first defined value from a list of possible keys.
 function firstValue(object, keys) {
   if (!object || typeof object !== 'object') return undefined;
 
@@ -1401,6 +1449,7 @@ function firstValue(object, keys) {
   return undefined;
 }
 
+// Extracts the best available DigiKey product description string.
 function extractDigiKeyDescription(object) {
   if (!object || typeof object !== 'object') {
     return undefined;
@@ -1421,6 +1470,7 @@ function extractDigiKeyDescription(object) {
   return firstText(object, ['productDescription', 'ProductDescription', 'detailedDescription', 'DetailedDescription']);
 }
 
+// Extracts the best available DigiKey part number, including variation-level numbers.
 function extractDigiKeyProductNumber(object) {
   const direct = firstText(object, ['productNumber', 'ProductNumber', 'DigiKeyPartNumber', 'digiKeyPartNumber']);
   if (direct) {
@@ -1440,6 +1490,7 @@ function extractDigiKeyProductNumber(object) {
   return undefined;
 }
 
+// Extracts the best available manufacturer name from a DigiKey object.
 function extractDigiKeyManufacturerName(object) {
   if (!object || typeof object !== 'object') {
     return undefined;
@@ -1458,15 +1509,18 @@ function extractDigiKeyManufacturerName(object) {
   return undefined;
 }
 
+// Returns whether a value can be treated as a finite number.
 function isFiniteNumber(value) {
   return Number.isFinite(Number(value));
 }
 
+// Parses an integer value using the app's BOM-safe coercion rules.
 function parseInteger(value) {
   const parsed = Number.parseInt(String(value ?? '').trim(), 10);
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+// Converts an error into a compact diagnostic string for user-facing notes and logs.
 function describeError(error) {
   if (error instanceof Error) {
     const cause = error.cause && typeof error.cause === 'object' ? error.cause : null;
@@ -1481,6 +1535,7 @@ function describeError(error) {
   return String(error);
 }
 
+// Splits one tab-delimited line into normalized cell strings.
 function splitTabDelimitedLine(line) {
   return String(line)
     .replace(/\r/g, '')
@@ -1488,6 +1543,7 @@ function splitTabDelimitedLine(line) {
     .map((cell) => cell.trim());
 }
 
+// Creates the empty progress-tracking state used by the preview progress bar.
 function createLookupProgressState() {
   return {
     active: false,
@@ -1500,6 +1556,7 @@ function createLookupProgressState() {
   };
 }
 
+// Maps raw BOM header labels into the app's normalized row property names.
 function normalizeBomHeader(header) {
   const normalized = String(header).trim().toLowerCase().replace(/\s+/g, ' ');
 
@@ -1524,6 +1581,7 @@ function normalizeBomHeader(header) {
   }
 }
 
+// Escapes a value for safe inclusion as one CSV cell.
 function escapeCsvCell(value) {
   const text = String(value ?? '').replace(/\r?\n/g, ' ').trim();
   if (/[",\r\n]/.test(text)) {
@@ -1532,10 +1590,12 @@ function escapeCsvCell(value) {
   return text;
 }
 
+// Reads one environment variable with a fallback value.
 function readEnv(name, fallback = '') {
   return process.env[name] ?? fallback;
 }
 
+// Returns the DigiKey settings that the preview dialog can display and edit.
 function getDigiKeySettings() {
   return {
     clientId: readEnv('DIGIKEY_CLIENT_ID', '').trim(),
@@ -1547,6 +1607,7 @@ function getDigiKeySettings() {
   };
 }
 
+// Updates selected keys inside the local .env file and refreshes the running process values.
 function updateEnvFile(updates) {
   let text = '';
   try {
@@ -1590,6 +1651,7 @@ function updateEnvFile(updates) {
   clearDigiKeyAccessTokenCache();
 }
 
+// Loads .env values into process.env on startup without overwriting preexisting values.
 function loadDotEnv() {
   let text = '';
   try {
@@ -1623,6 +1685,7 @@ function loadDotEnv() {
   }
 }
 
+// Dispatches a DigiKey request using demo mode or the live scheduled request path.
 async function fetchDigiKey(method, path, body = null, overrides = {}) {
   if (isDemoMode()) {
     return mockResponse(method, path, body, overrides);
@@ -1631,7 +1694,9 @@ async function fetchDigiKey(method, path, body = null, overrides = {}) {
   return scheduleDigiKeyRequest(() => fetchDigiKeyOnce(method, path, body, overrides));
 }
 
+// Executes one live DigiKey HTTP request with auth, headers, and retry handling.
 async function fetchDigiKeyOnce(method, path, body = null, overrides = {}, retryOnAuthFailure = true) {
+  // All live DigiKey traffic is server-side so credentials stay out of the browser.
   const baseUrl = readEnv('DIGIKEY_API_BASE_URL', 'https://api.digikey.com').replace(/\/+$/, '');
   const clientId = readEnv('DIGIKEY_CLIENT_ID', '').trim();
   const language = overrides.localeLanguage ?? readEnv('DIGIKEY_LOCALE_LANGUAGE', 'en');
@@ -1700,6 +1765,7 @@ async function fetchDigiKeyOnce(method, path, body = null, overrides = {}, retry
   return parsed;
 }
 
+// Serializes live DigiKey requests so the app respects the configured pacing gap.
 async function scheduleDigiKeyRequest(task) {
   const previous = digikeyRequestChain;
   let release;
@@ -1716,6 +1782,7 @@ async function scheduleDigiKeyRequest(task) {
   }
 }
 
+// Obtains and caches the DigiKey client-credentials bearer token for live API calls.
 async function getDigiKeyAccessToken() {
   const cached = digikeyTokenCache;
   const now = Date.now();
@@ -1777,19 +1844,23 @@ async function getDigiKeyAccessToken() {
   return accessToken;
 }
 
+// Clears the cached DigiKey bearer token so the next live request reauthenticates.
 function clearDigiKeyAccessTokenCache() {
   digikeyTokenCache = null;
 }
 
+// Returns whether the app should use simulated DigiKey responses instead of the live API.
 function isDemoMode() {
   const value = readEnv('MCP_ALLOW_DEMO', 'true').toLowerCase();
   return value === '1' || value === 'true' || value === 'yes';
 }
 
+// Waits for the requested number of milliseconds.
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Returns predictable mock DigiKey responses for demo mode and local testing.
 function mockResponse(method, path, body, overrides) {
   if (path.includes('/productdetails')) {
     const productNumber = decodeURIComponent(path.split('/').at(-2) ?? 'unknown');
@@ -1844,6 +1915,7 @@ function mockResponse(method, path, body, overrides) {
   return {};
 }
 
+// Converts freeform text into a simple slug for mock IDs and filenames.
 function slugify(value) {
   return (
     String(value)
@@ -1855,6 +1927,7 @@ function slugify(value) {
   );
 }
 
+// Starts the app in HTTP or stdio mode and wires the local preview/auth endpoints.
 async function main() {
   const mode = (process.argv[2] ?? process.env.MCP_TRANSPORT ?? 'http').toLowerCase();
 
@@ -1873,6 +1946,8 @@ async function main() {
   await server.connect(transport);
 
   const httpServer = http.createServer((req, res) => {
+    // The browser preview talks to this local HTTP server for HTML, auth helpers,
+    // progress polling, settings updates, and the MCP endpoint.
     const requestUrl = new URL(req.url ?? '/', `http://${req.headers.host ?? `127.0.0.1:${port}`}`);
 
     if (req.url === '/healthz') {

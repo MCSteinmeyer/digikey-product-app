@@ -848,6 +848,8 @@
     }
 
     async function startLookupAndExportFlow() {
+      // The browser owns user interaction and progress display, but the actual
+      // BOM lookup/export work happens in the server-side MCP tool.
       const bomText = bomTextArea.value.trim();
       const outputFilename = normalizeCsvFilename(outputFilenameInput.value.trim() || getDefaultOutputFilename());
       outputFilenameInput.value = outputFilename;
@@ -924,6 +926,8 @@
     }
 
     async function openDrivePicker(mode = 'input') {
+      // The picker is a lightweight browser UI over the server's Google Drive
+      // listing/import endpoints.
       drivePickerTitle.textContent = mode === 'output' ? 'Choose a Google Drive output filename' : 'Choose a Google Drive BOM file';
       drivePickerCopy.textContent = mode === 'output'
         ? 'Pick an existing Drive file if you want to reuse its filename for the export. You can still edit the output filename box afterward.'
@@ -1049,6 +1053,8 @@
     }
 
     async function saveDigiKeySettings() {
+      // Credentials are posted back to the local server so it can persist them
+      // into .env and refresh the in-memory runtime settings immediately.
       digikeySettingsSaveButton.disabled = true;
       digikeySettingsHint.textContent = 'Saving DigiKey credentials to .env...';
 
@@ -1126,6 +1132,8 @@
         return window.openai.callTool(name, args);
       }
 
+      // In local preview mode we fall back to the app's /mcp endpoint so the
+      // same widget can run outside ChatGPT.
       await ensureLocalSession();
       const response = await rpc('tools/call', {
         name,
@@ -1268,6 +1276,8 @@
     }
 
     async function refreshLookupProgress() {
+      // Progress is polled from the server because the BOM processing loop lives
+      // there, not in the browser.
       try {
         const response = await fetch('/lookup-progress');
         const data = await response.json();
